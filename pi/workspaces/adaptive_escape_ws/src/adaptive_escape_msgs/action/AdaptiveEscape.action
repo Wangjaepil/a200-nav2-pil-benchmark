@@ -1,0 +1,46 @@
+# =========================
+# Goal
+# =========================
+
+# 현재 navigation goal
+geometry_msgs/PoseStamped goal
+
+# 기존 global path
+# Planner failure 시 비어 있거나 stale할 수 있음
+nav_msgs/Path path
+
+# 이 recovery가 실행될 수 있는 최대 시간
+builtin_interfaces/Duration time_allowance
+
+---
+# =========================
+# Result
+# =========================
+
+uint16 NONE=0
+uint16 TF_ERROR=1
+uint16 NO_ESCAPE_FOUND=2
+uint16 COLLISION=3
+uint16 TIMEOUT=4
+uint16 CANCELED=5
+
+uint16 error_code
+string error_msg
+
+# 실제 선택해서 실행했던 maneuver
+string selected_maneuver
+
+# TimedBehavior가 사용하는 필드
+builtin_interfaces/Duration total_elapsed_time
+---
+# =========================
+# Feedback
+# =========================
+
+string selected_maneuver
+
+float32 distance_traveled
+float32 angle_traveled
+
+# 선택된 escape candidate의 평가점수
+float32 score

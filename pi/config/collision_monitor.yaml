@@ -1,0 +1,151 @@
+collision_monitor:
+  ros__parameters:
+    use_sim_time: true
+
+    enable_stamped_cmd_vel: true
+
+    base_frame_id: "base_link"
+    odom_frame_id: "odom"
+
+    cmd_vel_in_topic: "/cmd_vel_raw"
+    cmd_vel_out_topic: "/a200_0000/platform/cmd_vel"
+
+    state_topic: "/collision_monitor_state"
+
+    transform_tolerance: 0.2
+
+    source_timeout: 0.5
+    base_shift_correction: true
+
+    stop_pub_timeout: 2.0
+    use_realtime_priority: false
+
+    # [FIX] VelocityPolygonStop이 이 목록에 없어서, 아래에 정의된
+    # 하드 스톱 영역 전체(rotation / forward / backward / stopped)가
+    # 한 번도 로드되지 않았다. nav2_collision_monitor는 이 목록에 적힌
+    # 이름만 인스턴스화한다. 즉 지금까지 approach(감속)만 동작했고
+    # 하드 스톱 보호는 꺼져 있었다.
+    #
+    # 순서: 더 강한 동작(stop)을 먼저 둔다.
+    polygons:
+      - VelocityPolygonStop
+      - FootprintApproach
+
+
+    # ==========================================================
+    # HARD STOP
+    #
+    # 현재 command 방향에 따라 stop 영역을 변경
+    # ==========================================================
+    VelocityPolygonStop:
+      type: "velocity_polygon"
+      action_type: "stop"
+
+      min_points: 6
+
+      # [TUNE] 벤치마크 자동 실행에는 RViz가 없다. 시각화 퍼블리시는
+      # Pi CPU와 Zenoh 트래픽만 쓰므로 꺼 둔다(FootprintApproach와 동일).
+      # 수동으로 영역을 튜닝할 때만 true로.
+      visualize: false
+      polygon_pub_topic: "/collision_monitor/velocity_stop"
+      enabled: true
+
+      holonomic: false
+
+      # 위에서부터 먼저 매칭되는 영역이 선택된다.
+      # 마지막 stopped 영역이 어떤 속도든 받아내는 fallback 역할.
+      velocity_polygons:
+        - rotation
+        - translation_forward
+        - translation_backward
+        - stopped
+
+
+      # --------------------------------------------------------
+      # 거의 제자리 회전
+      #
+      # A200 회전 시 모서리 swept area 보호
+      # --------------------------------------------------------
+      rotation:
+        points: "[[0.68, 0.0], [0.48, 0.48], [0.0, 0.68], [-0.48, 0.48], [-0.68, 0.0], [-0.48, -0.48], [0.0, -0.68], [0.48, -0.48]]"
+
+        linear_min: -0.05
+        linear_max: 0.05
+
+        theta_min: -0.8
+        theta_max: 0.8
+
+
+      # --------------------------------------------------------
+      # 전진
+      #
+      # 앞쪽 약 20 cm 여유.
+      # 뒤쪽 장애물은 전진 탈출을 막지 않게 영역 축소.
+      # --------------------------------------------------------
+      translation_forward:
+        points: "[[0.70, 0.44], [0.70, -0.44], [-0.20, -0.44], [-0.20, 0.44]]"
+
+        linear_min: 0.0
+        linear_max: 0.30
+
+        theta_min: -0.8
+        theta_max: 0.8
+
+
+      # --------------------------------------------------------
+      # 후진
+      #
+      # 후방을 크게 보고,
+      # 앞 장애물 때문에 BackUp까지 막히지 않도록
+      # 전방 영역은 작게 둠.
+      # --------------------------------------------------------
+      translation_backward:
+        points: "[[0.20, 0.44], [0.20, -0.44], [-0.70, -0.44], [-0.70, 0.44]]"
+
+        linear_min: -0.30
+        linear_max: 0.0
+
+        theta_min: -0.8
+        theta_max: 0.8
+
+
+      # --------------------------------------------------------
+      # 정지 / fallback
+      #
+      # 실제 footprint보다 아주 조금 크게만
+      # --------------------------------------------------------
+      stopped:
+        points: "[[0.52, 0.36], [0.52, -0.36], [-0.52, -0.36], [-0.52, 0.36]]"
+
+        linear_min: -1.0
+        linear_max: 1.0
+
+        theta_min: -1.0
+        theta_max: 1.0
+
+
+    # ==========================================================
+    # TTC APPROACH
+    # ==========================================================
+    FootprintApproach:
+      type: "polygon"
+      action_type: "approach"
+
+      footprint_topic: "/local_costmap/published_footprint"
+
+      time_before_collision: 1.5
+      simulation_time_step: 0.1
+
+      min_points: 6
+
+      visualize: false
+      enabled: true
+
+
+    observation_sources:
+      - scan
+
+    scan:
+      type: "scan"
+      topic: "/scan"
+      enabled: true

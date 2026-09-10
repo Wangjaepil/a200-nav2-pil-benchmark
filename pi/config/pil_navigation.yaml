@@ -1,0 +1,186 @@
+planner_server:
+  ros__parameters:
+    use_sim_time: true
+
+    # [TUNE] 이 값은 "계획이 이보다 느리면 경고 로그"라는 뜻일 뿐
+    # 재계획 주기가 아니다(재계획은 BT가 결정). Pi에서 600x600 격자
+    # A*가 200 ms를 넘기면 5.0에서는 매번 경고가 찍혀 로그가 지저분해진다.
+    expected_planner_frequency: 1.0
+
+    planner_plugins:
+      - GridBased
+
+    GridBased:
+      plugin: "nav2_navfn_planner::NavfnPlanner"
+      tolerance: 0.5
+      use_astar: true
+      allow_unknown: true
+
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: true
+
+      global_frame: map
+      robot_base_frame: base_link
+
+      rolling_window: true
+      width: 30
+      height: 30
+      resolution: 0.05
+
+      update_frequency: 2.0
+      publish_frequency: 1.0
+
+      # [FIX] robot_radius: 0.60 -> 실제 footprint
+      #
+      # 로봇 실측은 0.988 x 0.67 m 이고 0.60은 그 외접원 반지름이다.
+      # 원으로 두면 장애물에서 0.60 m 안쪽이 전부 lethal이 되어
+      # 최소 1.2 m 통로가 없으면 경로 자체가 나오지 않는다.
+      # 실제로는 0.67 m 폭이면 통과하는 로봇이므로, 0.7~1.2 m 간격을
+      # 가진 케이스가 "회피 실패"가 아니라 "계획 불가"로 찍히게 된다.
+      #
+      # footprint를 주면 inscribed 반지름이 0.335가 되어 좁은 통로도
+      # 계획 가능해지고, inflation gradient(아래)가 여전히 넓은 쪽을
+      # 선호하게 만든다. 실제 충돌 여부는 DWB ObstacleFootprint critic이
+      # 방향까지 고려해 로컬에서 막는다.
+      #
+      # padding은 collision_monitor의 하드 스톱 영역에서 역산한다.
+      # 안전 설정이 실제 통과 가능 폭을 결정하므로 플래너가 거기에 맞춰야지,
+      # 반대로 가면 "계획은 되는데 들어가면 하드 스톱"이 된다.
+      #
+      #   translation_forward 반폭 0.44 -> 전진 통과에 최소 0.88 m 필요
+      #   padding 0.12 -> inscribed 0.455 -> 최소 통로 0.91 m  (0.88 초과 OK)
+      #
+      # local(0.01, 최소 0.69 m)보다 크게 두는 비대칭은 의도적이다.
+      # "계획은 보수적으로, 제어는 정밀하게".
+      #
+      # 참고: rotation 영역은 반폭 0.68이라 제자리 회전에는 1.36 m가 필요하다.
+      # 이건 설정이 아니라 물리적 사실에 가깝다(로봇 외접원 반지름 0.597이라
+      # 실제로 회전하려면 1.19 m 필요). 0.91~1.36 m 통로에서 제자리 회전이
+      # 필요한 경로는 정지/복구로 이어지는데, 그건 정직한 측정 결과다.
+      #
+      # 주의: 이 변경은 측정 기준을 바꾼다. 과거 결과와 직접 비교 불가.
+      footprint: "[[0.494, 0.335], [0.494, -0.335], [-0.494, -0.335], [-0.494, 0.335]]"
+      footprint_padding: 0.12
+
+      # 지금은 사전 지도가 없으므로
+      # 아직 보지 못한 공간을 막힌 공간으로 취급하지 않음
+      track_unknown_space: false
+
+      plugins:
+        - obstacle_layer
+        - inflation_layer
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: scan
+
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+
+          marking: true
+          clearing: true
+
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+
+          obstacle_min_range: 0.12
+          obstacle_max_range: 12.0
+
+          raytrace_min_range: 0.12
+          # [FIX] raytrace_max_range 가 obstacle_max_range 와 같으면
+          # 최대 거리에서 찍힌 장애물을 지우는 ray가 딱 그 지점에서 끝나
+          # 유령 장애물이 남을 수 있다. local costmap은 3.0/3.5로
+          # 이미 벌려 두었으므로 global도 동일하게 맞춘다.
+          raytrace_max_range: 13.0
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 0.75
+        cost_scaling_factor: 3.0
+
+      always_send_full_costmap: true
+
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: true
+
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /a200_0000/platform/odom
+
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    wait_for_service_timeout: 1000
+
+    navigators:
+      - navigate_to_pose
+
+    navigate_to_pose:
+      plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
+
+    # 참고: 이 XML이 adaptive_escape의 발동 조건을 결정하는데
+    # benchmark_runner_support.snapshot_configs()의 remote_files에는
+    # 빠져 있어 런별 스냅샷에 남지 않는다. 재현성을 위해 추가 권장:
+    #   remote_files = [..., "pil_nav_to_pose.xml"]
+    default_nav_to_pose_bt_xml: "/home/tb-pil/pil_nav_to_pose.xml"
+
+    plugin_lib_names:
+      - adaptive_escape_bt_node
+
+    error_code_names:
+      - compute_path_error_code
+      - follow_path_error_code
+
+
+behavior_server:
+  ros__parameters:
+    use_sim_time: true
+
+    local_costmap_topic: /local_costmap/costmap_raw
+    local_footprint_topic: /local_costmap/published_footprint
+
+    global_costmap_topic: /global_costmap/costmap_raw
+    global_footprint_topic: /global_costmap/published_footprint
+
+    cycle_frequency: 10.0
+
+    behavior_plugins:
+      - spin
+      - backup
+      - wait
+      - adaptive_escape
+
+    spin:
+      plugin: "nav2_behaviors::Spin"
+
+    backup:
+      plugin: "nav2_behaviors::BackUp"
+      acceleration_limit: 1.0
+      deceleration_limit: -1.0
+      minimum_speed: 0.05
+
+    wait:
+      plugin: "nav2_behaviors::Wait"
+
+    adaptive_escape:
+      plugin: "adaptive_escape_behavior::AdaptiveEscape"
+
+    local_frame: odom
+    global_frame: map
+    robot_base_frame: base_link
+
+    transform_tolerance: 0.2
+    simulate_ahead_time: 2.0
+
+    max_rotational_vel: 0.8
+    min_rotational_vel: 0.2
+    rotational_acc_lim: 1.5
+
+    enable_stamped_cmd_vel: true

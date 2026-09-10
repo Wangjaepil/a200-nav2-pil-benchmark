@@ -1,0 +1,175 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+
+  <BehaviorTree ID="MainTree">
+
+    <RecoveryNode number_of_retries="4" name="NavigateRecovery">
+
+      <!-- ========================= -->
+      <!-- 정상 Navigation -->
+      <!-- ========================= -->
+      <PipelineSequence name="NavigateWithReplanning">
+
+        <!--
+          5 Hz로 Planner를 돌리는 것이 아니라
+          기존 Global Path를 계속 사용할 수 있는지 검사
+        -->
+        <RateController hz="5.0">
+
+          <RecoveryNode number_of_retries="1"
+                        name="ComputePathToPose">
+
+            <!-- ========================= -->
+            <!-- 정상 Planner 동작 -->
+            <!-- ========================= -->
+            <ReactiveFallback name="ReplanOnlyIfNeeded">
+
+              <!-- 기존 Global Path 유지 조건 -->
+              <ReactiveSequence name="KeepCurrentPath">
+
+                <!-- 새로운 goal / sub-goal이 아니어야 함 -->
+                <Inverter>
+                  <GlobalUpdatedGoal/>
+                </Inverter>
+
+                <!-- 기존 Path가 Global Costmap에서 유효해야 함 -->
+                <IsPathValid path="{path}"/>
+
+              </ReactiveSequence>
+
+
+              <!--
+                새 Goal이 들어왔거나
+                기존 Path가 invalid일 때만 A* 재계획
+
+                실패 원인은
+                {compute_path_error_code}에 저장
+              -->
+              <ComputePathToPose
+                goal="{goal}"
+                path="{path}"
+                planner_id="GridBased"
+                error_code_id="{compute_path_error_code}"/>
+
+            </ReactiveFallback>
+
+
+            <!-- ========================= -->
+            <!-- Planner Context Recovery -->
+            <!-- ========================= -->
+            <!--
+              Planner 실패라고 무조건 Clear하지 않음.
+
+              해당 오류가 Planner Recovery로
+              복구할 가치가 있는 오류일 때만
+              Global Costmap Clear 실행.
+            -->
+            <Sequence name="PlannerContextRecovery">
+
+              <WouldAPlannerRecoveryHelp
+                error_code="{compute_path_error_code}"/>
+
+              <ClearEntireCostmap
+                name="ClearGlobalCostmap-Context"
+                service_name="global_costmap/clear_entirely_global_costmap"/>
+
+            </Sequence>
+
+          </RecoveryNode>
+
+        </RateController>
+
+
+        <!-- ========================= -->
+        <!-- Local Controller -->
+        <!-- ========================= -->
+        <RecoveryNode number_of_retries="1"
+                      name="FollowPath">
+
+          <!--
+            DWB / Controller 실패 원인은
+            {follow_path_error_code}에 저장
+          -->
+          <FollowPath
+            path="{path}"
+            controller_id="FollowPath"
+            error_code_id="{follow_path_error_code}"/>
+
+
+          <!-- ========================= -->
+          <!-- Controller Context Recovery -->
+          <!-- ========================= -->
+          <Sequence name="ControllerContextRecovery">
+
+            <WouldAControllerRecoveryHelp
+              error_code="{follow_path_error_code}"/>
+
+            <ClearEntireCostmap
+              name="ClearLocalCostmap-Context"
+              service_name="local_costmap/clear_entirely_local_costmap"/>
+
+          </Sequence>
+
+        </RecoveryNode>
+
+      </PipelineSequence>
+
+
+      <!-- ========================= -->
+      <!-- System Recovery -->
+      <!-- ========================= -->
+
+      <!--
+        Navigation이 실패했다고 무조건
+        BackUp / Wait 하지 않는다.
+
+        Planner 또는 Controller 오류 중
+        Recovery가 도움될 가능성이 있는 오류인 경우에만
+        System Recovery 진입.
+      -->
+      <Sequence name="SystemRecoveryIfUseful">
+
+        <Fallback name="RecoveryErrorFilter">
+
+          <WouldAControllerRecoveryHelp
+            error_code="{follow_path_error_code}"/>
+
+          <WouldAPlannerRecoveryHelp
+            error_code="{compute_path_error_code}"/>
+
+        </Fallback>
+
+
+        <ReactiveFallback name="RecoveryFallback">
+
+          <!--
+            far_goal_manager가 새로운 sub-goal을 보내면
+            현재 recovery 중단 후 새 goal 처리
+          -->
+          <GoalUpdated/>
+
+
+          <RoundRobin name="RecoveryActions">
+
+            <!--
+              현재 Phase 4 임시 Recovery.
+              이후 AdaptiveEscape로 교체 예정.
+            -->
+            <BackUp
+              backup_dist="0.30"
+              backup_speed="0.10"
+              time_allowance="6.0"/>
+
+            <Wait
+              wait_duration="3.0"/>
+
+          </RoundRobin>
+
+        </ReactiveFallback>
+
+      </Sequence>
+
+    </RecoveryNode>
+
+  </BehaviorTree>
+
+</root>

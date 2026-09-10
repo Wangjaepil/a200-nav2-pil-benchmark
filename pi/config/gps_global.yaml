@@ -1,0 +1,120 @@
+# [FIX] 이 파일은 서로 다른 두 리비전이 돌아다니고 있었다.
+#   A) frequency 10.0 / sensor_timeout 0.5 / broadcast_cartesian_transform false
+#   B) frequency 30.0 / sensor_timeout 0.2 / broadcast_cartesian_transform true
+# 주석 내용("UTM TF 자체가 필요한 게 아니라 GPS -> Cartesian odometry가 필요",
+# "Pi 부하")으로 보아 A가 나중 리비전이라 판단해 A를 정본으로 삼았다.
+# Pi에 실제로 어느 쪽이 올라가 있었는지는 과거 런의
+#   results/S*/S*_*/run_*/config_snapshot/gps_global.yaml
+# 을 diff 해서 확인할 것. EKF 주기 10 vs 30 Hz는 localization 거동이
+# 달라지므로, 배치 중간에 바뀌었다면 케이스 간 비교가 무효다.
+
+ekf_filter_node_map:
+  ros__parameters:
+    use_sim_time: true
+
+    # [FIX] 주석과 값이 어긋나 있었다(주석 "5 Hz" / 값 10.0).
+    # 실제로 검증된 값이 10.0이므로 값을 두고 주석을 고친다.
+    # 10 Hz 주기(0.1 s)는 Nav2 쪽 transform_tolerance 0.2와도 맞는다.
+    frequency: 10.0
+    sensor_timeout: 0.5
+
+    two_d_mode: true
+    publish_tf: true
+    print_diagnostics: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+
+    # 핵심:
+    # 이 EKF는 map -> odom을 담당
+    # (odom -> base_link는 Clearpath 플랫폼이 발행)
+    world_frame: map
+
+    # ==============================
+    # 기존 Clearpath wheel odometry
+    # ==============================
+    odom0: /a200_0000/platform/odom
+
+    # vx + yaw rate만 사용
+    odom0_config: [
+      false, false, false,
+      false, false, false,
+      true,  false, false,
+      false, false, true,
+      false, false, false
+    ]
+
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # ==============================
+    # Dual GPS absolute heading
+    # ==============================
+    imu0: /gps/heading
+
+    # yaw만 사용
+    imu0_config: [
+      false, false, false,
+      false, false, true,
+      false, false, false,
+      false, false, false,
+      false, false, false
+    ]
+
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+
+    # ==============================
+    # navsat_transform의 GPS 위치
+    # ==============================
+    odom1: /odometry/gps
+
+    # absolute x, y만 사용
+    odom1_config: [
+      true,  true,  false,
+      false, false, false,
+      false, false, false,
+      false, false, false,
+      false, false, false
+    ]
+
+    odom1_differential: false
+    odom1_relative: false
+    odom1_queue_size: 10
+
+    # 참고: process_noise_covariance / initial_estimate_covariance를
+    # 지정하지 않아 robot_localization 기본값을 쓰고 있다. GPS 절대위치와
+    # 절대 heading을 함께 융합하는 구성에서는 기본값이 최적이 아닌 경우가
+    # 많다. 실측 데이터 없이 임의로 넣으면 오히려 나빠지므로 두었으나,
+    # 위치가 튀는 현상이 보이면 여기부터 손볼 것.
+
+
+navsat_transform:
+  ros__parameters:
+    use_sim_time: true
+
+    frequency: 10.0
+    delay: 1.0
+
+    magnetic_declination_radians: 0.0
+
+    # 우리가 만든 heading은
+    # East = 0 rad인 ROS ENU 기준
+    yaw_offset: 0.0
+
+    zero_altitude: true
+
+    # 우리는 UTM TF 자체가 필요한 게 아니라
+    # GPS -> Cartesian odometry가 필요
+    broadcast_cartesian_transform: false
+
+    publish_filtered_gps: true
+
+    # /gps/heading을 사용
+    use_odometry_yaw: false
+
+    # 첫 GPS Fix를 기준으로 자동 설정
+    wait_for_datum: false

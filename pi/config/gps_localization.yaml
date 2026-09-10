@@ -1,0 +1,99 @@
+ekf_filter_node_map:
+  ros__parameters:
+    use_sim_time: true
+
+    frequency: 30.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+
+    publish_tf: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+
+    # 핵심:
+    # 이 EKF는 odom -> base_link가 아니라
+    # map -> odom을 만든다.
+    world_frame: map
+
+    # --------------------------------
+    # 기존 Clearpath wheel odometry
+    # --------------------------------
+    odom0: /a200_0000/platform/odom
+
+    # wheel odom에서는
+    # linear X velocity와 yaw rate 사용
+    odom0_config: [
+      false, false, false,
+      false, false, false,
+      true,  false, false,
+      false, false, true,
+      false, false, false
+    ]
+
+    odom0_differential: false
+
+    # --------------------------------
+    # Dual GPS absolute heading
+    # --------------------------------
+    imu0: /gps/heading
+
+    # yaw만 사용
+    imu0_config: [
+      false, false, false,
+      false, false, true,
+      false, false, false,
+      false, false, false,
+      false, false, false
+    ]
+
+    imu0_differential: false
+    imu0_relative: false
+
+    # --------------------------------
+    # navsat_transform의 GPS 위치
+    # --------------------------------
+    odom1: /odometry/gps
+
+    # GPS에서는 absolute X, Y만 사용
+    odom1_config: [
+      true,  true,  false,
+      false, false, false,
+      false, false, false,
+      false, false, false,
+      false, false, false
+    ]
+
+    odom1_differential: false
+
+
+navsat_transform:
+  ros__parameters:
+    use_sim_time: true
+
+    frequency: 10.0
+    delay: 1.0
+
+    # Dual GPS heading은 magnetic north가 아니라
+    # 이미 ENU absolute heading이므로 0
+    magnetic_declination_radians: 0.0
+
+    # 우리가 만든 heading:
+    # East = 0 rad
+    # North = +pi/2
+    # navsat_transform이 원하는 ENU convention과 동일
+    yaw_offset: 0.0
+
+    zero_altitude: true
+
+    broadcast_cartesian_transform: true
+    publish_filtered_gps: true
+
+    # 중요:
+    # heading을 wheel odom에서 가져오는 게 아니라
+    # /gps/heading IMU message에서 가져옴
+    use_odometry_yaw: false
+
+    # 첫 유효 GPS를 자동 datum으로 사용
+    wait_for_datum: false

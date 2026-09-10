@@ -1,0 +1,211 @@
+controller_server:
+  ros__parameters:
+    use_sim_time: true
+
+    controller_frequency: 10.0
+
+    odom_topic: /a200_0000/platform/odom
+    enable_stamped_cmd_vel: true
+
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+
+    # [TUNE] 일시적인 TF/costmap 예외로 케이스 전체가 ABORTED 되는 것을 막는다.
+    # PIL 구성에서는 Wi-Fi/Zenoh 지연이 순간적으로 TF extrapolation 예외를
+    # 만들 수 있는데, 그건 네비게이션 성능이 아니라 인프라 잡음이다.
+    # 기본값 0.0은 그런 예외 한 번에 즉시 실패한다.
+    failure_tolerance: 1.0
+
+    # ==========================================================
+    # Progress Checker
+    # 이동 또는 회전 중 하나라도 충분히 하면 progress로 인정
+    # ==========================================================
+    progress_checker_plugins: ["progress_checker"]
+
+    progress_checker:
+      # [FIX] SimpleProgressChecker -> PoseProgressChecker
+      #
+      # SimpleProgressChecker는 required_movement_angle을 읽지 않는다.
+      # 그래서 위 주석의 의도("회전도 progress")가 전혀 적용되지 않았고,
+      # 실제로는 required_movement_radius 기본값 0.5 m만 사용됐다.
+      # 결과: 제자리 회전은 progress로 인정되지 않아
+      #   - 회피 중 큰 회전이 5초를 넘으면 가짜 실패
+      #   - 목표 직전 저속 접근 + 정지 구간에서 ABORTED
+      # PoseProgressChecker는 "반경 OR 각도" 중 하나만 만족해도 인정한다.
+      plugin: "nav2_controller::PoseProgressChecker"
+
+      # 직선 이동으로 progress를 인정받는 거리
+      required_movement_radius: 0.5
+
+      # 약 2.9도 회전하면 progress
+      required_movement_angle: 0.05
+
+      # [FIX] 값과 주석이 어긋나 있었다(주석 20초 / 값 5.0).
+      # 회전이 progress로 인정되므로 5초보다 여유를 두어도
+      # 진짜 정체(이동도 회전도 없음)는 그대로 잡힌다.
+      # 너무 크면 복구 동작(spin/backup/adaptive_escape) 발동이 늦어지므로
+      # 회피 성능을 보려면 이 값이 사실상 튜닝 포인트다.
+      movement_time_allowance: 15.0
+
+
+    # ==========================================================
+    # Goal Checker
+    # XY + Yaw + 실제 정지까지 확인
+    # ==========================================================
+    goal_checker_plugins: ["precise_goal_checker"]
+
+    precise_goal_checker:
+      plugin: "nav2_controller::StoppedGoalChecker"
+
+      # 우선 위치 오차 5 cm
+      xy_goal_tolerance: 0.05
+
+      # 우선 yaw 오차 약 ±5도
+      yaw_goal_tolerance: 0.0873
+
+      # 거의 정지했다고 볼 선속도
+      trans_stopped_velocity: 0.03
+
+      # 거의 정지했다고 볼 각속도
+      rot_stopped_velocity: 0.05
+
+      stateful: true
+
+
+    controller_plugins: ["FollowPath"]
+
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+
+      debug_trajectory_details: true
+
+      # 중요:
+      # DWB RotateToGoal Critic의 접근 거리도
+      # GoalChecker와 동일한 5 cm로 맞춘다.
+      xy_goal_tolerance: 0.05
+
+      # RotateToGoal이 정지로 판단하는 선속도
+      trans_stopped_velocity: 0.03
+
+      min_vel_x: 0.0
+      min_vel_y: 0.0
+      max_vel_x: 1.0
+      max_vel_y: 0.0
+      max_vel_theta: 0.8
+
+      min_speed_xy: 0.0
+      max_speed_xy: 1.0
+      min_speed_theta: 0.0
+
+      acc_lim_x: 1.0
+      acc_lim_y: 0.0
+      acc_lim_theta: 1.5
+
+      decel_lim_x: -1.0
+      decel_lim_y: 0.0
+      decel_lim_theta: -1.5
+
+      vx_samples: 20
+      # [TUNE] Diff-drive라 y 속도는 항상 0이다. 5는 오해를 부르는 값이라 1로.
+      # (동작상 차이는 없다. min==max일 때 DWB는 어차피 1개만 생성한다.)
+      vy_samples: 1
+      vtheta_samples: 20
+
+      sim_time: 1.7
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+
+      transform_tolerance: 0.2
+
+      short_circuit_trajectory_evaluation: true
+      stateful: true
+
+      critics:
+        - RotateToGoal
+        - Oscillation
+        - ObstacleFootprint
+        - GoalAlign
+        - PathAlign
+        - PathDist
+        - GoalDist
+
+      ObstacleFootprint.scale: 0.02
+
+      PathAlign.scale: 32.0
+      PathAlign.forward_point_distance: 0.1
+
+      GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
+
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
+
+
+# ==============================================================
+# LOCAL COSTMAP
+#
+# 중요:
+# static_layer 사용하지 않음.
+# LiDAR obstacle + inflation만 사용.
+# ==============================================================
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: true
+
+      global_frame: odom
+      robot_base_frame: base_link
+
+      rolling_window: true
+
+      width: 6
+      height: 6
+      resolution: 0.05
+
+      update_frequency: 5.0
+      publish_frequency: 2.0
+
+      footprint: "[[0.494, 0.335], [0.494, -0.335], [-0.494, -0.335], [-0.494, 0.335]]"
+      footprint_padding: 0.01
+
+      # 중요!!!
+      # 이걸 명시하지 않으면 static_layer까지 기본 로드됨
+      plugins:
+        - obstacle_layer
+        - inflation_layer
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+
+        observation_sources: scan
+
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+
+          marking: true
+          clearing: true
+
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+
+          obstacle_min_range: 0.12
+          obstacle_max_range: 3.0
+
+          raytrace_min_range: 0.12
+          raytrace_max_range: 3.5
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+
+        inflation_radius: 0.65
+        cost_scaling_factor: 3.0
+
+      always_send_full_costmap: true

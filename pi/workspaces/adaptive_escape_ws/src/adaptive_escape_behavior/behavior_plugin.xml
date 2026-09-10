@@ -1,0 +1,13 @@
+<library path="adaptive_escape_behavior_plugin">
+
+  <class
+    type="adaptive_escape_behavior::AdaptiveEscape"
+    base_class_type="nav2_core::Behavior">
+
+    <description>
+      Adaptive escape recovery behavior for Nav2.
+    </description>
+
+  </class>
+
+</library>
