@@ -1,0 +1,42 @@
+scenario: S5
+case_id: S5_09
+description: moving cart crossing
+robot:
+  x: 18.579261
+  y: 30.600076
+  yaw: 0.261799
+goal:
+  x: 51.420739
+  y: 39.399924
+  yaw: 0.261799
+obstacles: []
+dynamic_obstacles:
+- name: s5_09_dyn_01
+  shape: box
+  mass: 70.0
+  pose:
+    x: 35.724693
+    y: 32.295408
+    yaw: 1.832596
+  motion:
+    end:
+      x: 34.275307
+      y: 37.704592
+      yaw: 1.832596
+    speed_mps: 0.5
+    trigger:
+      type: robot_distance
+      distance_m: 4.2
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.48
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  size:
+  - 0.8
+  - 0.6
+  - 1.0

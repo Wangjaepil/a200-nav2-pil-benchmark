@@ -1,0 +1,33 @@
+scenario: S1
+case_id: S1_14
+description: "장거리 수직 주행 + 높은 기울어진 원기둥"
+
+metadata:
+  nominal_start_goal_distance_m: 54.00
+  obstacle_path_ratio: 0.38
+  obstacle_lateral_offset_m: 0.00
+  obstacle_profile: "옆으로 약간 기울어진 높은 원기둥"
+
+robot:
+  x: 25.00
+  y: -72.00
+  yaw: 1.4708
+
+goal:
+  x: 25.00
+  y: -18.00
+  yaw: 1.5708
+
+obstacles:
+  - name: obstacle_01
+    shape: cylinder
+
+    pose:
+      x: 25.00
+      y: -51.48
+      roll: 0.1100
+      pitch: -0.0400
+      yaw: 1.5708
+
+    radius: 0.95
+    height: 2.20

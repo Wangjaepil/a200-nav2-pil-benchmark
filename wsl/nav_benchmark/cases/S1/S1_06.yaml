@@ -1,0 +1,39 @@
+scenario: S1
+case_id: S1_06
+description: "중거리 대각선 + 불규칙 육각형"
+
+metadata:
+  nominal_start_goal_distance_m: 43.01
+  obstacle_path_ratio: 0.60
+  obstacle_lateral_offset_m: 0.35
+  obstacle_profile: "불규칙 육각기둥"
+
+robot:
+  x: -70.00
+  y: -5.00
+  yaw: 0.6202
+
+goal:
+  x: -35.00
+  y: 20.00
+  yaw: 0.6202
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -49.20
+      y: 10.28
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: 1.8202
+
+    height: 1.85
+    points:
+      - [-1.30, -0.55]
+      - [-0.25, -1.20]
+      - [ 1.10, -0.95]
+      - [ 1.45,  0.25]
+      - [ 0.35,  1.25]
+      - [-1.15,  0.95]

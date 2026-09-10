@@ -1,0 +1,133 @@
+scenario: S4
+case_id: S4_10
+robot:
+  x: -4
+  y: 34
+  yaw: 1.05
+goal:
+  x: 13.913
+  y: 65.227
+  yaw: 1.05
+obstacles:
+- name: s4_10_hard_a_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: -2.76
+    y: 39.629
+    yaw: 1.05
+- name: s4_10_hard_a_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 0.233
+    y: 37.913
+    yaw: 1.05
+- name: s4_10_hard_b_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: -0.413
+    y: 44.624
+    yaw: 1.05
+- name: s4_10_hard_b_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 2.406
+    y: 43.007
+    yaw: 1.05
+- name: s4_10_hard_c_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 3.104
+    y: 48.947
+    yaw: 1.05
+- name: s4_10_hard_c_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 5.75
+    y: 47.429
+    yaw: 1.05
+- name: s4_10_hard_d_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 5.364
+    y: 53.991
+    yaw: 1.05
+- name: s4_10_hard_d_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 7.922
+    y: 52.524
+    yaw: 1.05
+- name: s4_10_hard_e_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 8.404
+    y: 58.588
+    yaw: 1.05
+- name: s4_10_hard_e_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 10.876
+    y: 57.17
+    yaw: 1.05
+- name: s4_10_exit_post_L
+  shape: cylinder
+  radius: 0.4
+  height: 1.5
+  pose:
+    x: 10.427
+    y: 61.462
+    yaw: 1.05
+- name: s4_10_exit_wedge_R
+  shape: polygon
+  height: 1.5
+  points:
+  - - -0.9
+    - -0.7
+  - - 0.9
+    - 0.0
+  - - -0.9
+    - 0.7
+  pose:
+    x: 12.876
+    y: 61.21
+    yaw: 1.05

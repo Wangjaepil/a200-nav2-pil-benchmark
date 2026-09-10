@@ -1,0 +1,31 @@
+scenario: S2
+case_id: S2_09
+robot:
+  x: -41.985
+  y: 15.085
+  yaw: 0.35
+goal:
+  x: -26.015
+  y: 20.915
+  yaw: 0.35
+obstacles:
+- name: s2_09_main_barrier
+  shape: box
+  size:
+  - 1.8
+  - 5.2
+  - 1.5
+  pose:
+    x: -34.0
+    y: 18.0
+    yaw: 0.35
+- name: s2_09_left_penalty
+  shape: box
+  size:
+  - 2.8
+  - 1.8
+  - 1.5
+  pose:
+    x: -32.868
+    y: 21.607
+    yaw: 0.35

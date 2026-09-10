@@ -1,0 +1,33 @@
+scenario: S1
+case_id: S1_02
+description: "근거리 사선 접근 + 작은 원형 장애물"
+
+metadata:
+  nominal_start_goal_distance_m: 28.79
+  obstacle_path_ratio: 0.55
+  obstacle_lateral_offset_m: 0.25
+  obstacle_profile: "작은 원기둥"
+
+robot:
+  x: -62.00
+  y: 18.00
+  yaw: -0.2547
+
+goal:
+  x: -35.00
+  y: 8.00
+  yaw: -0.3547
+
+obstacles:
+  - name: obstacle_01
+    shape: cylinder
+
+    pose:
+      x: -47.06
+      y: 12.73
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -0.3547
+
+    radius: 0.80
+    height: 1.35

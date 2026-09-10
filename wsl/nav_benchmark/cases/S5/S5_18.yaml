@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_18
+description: far-start long traversal
+robot:
+  x: -11.156363
+  y: 8.085533
+  yaw: 1.22173
+goal:
+  x: 1.156363
+  y: 41.914467
+  yaw: 1.22173
+obstacles: []
+dynamic_obstacles:
+- name: s5_18_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -1.24123
+    y: 23.631919
+    yaw: 2.792527
+  motion:
+    end:
+      x: -8.75877
+      y: 26.368081
+      yaw: 2.792527
+    speed_mps: 0.8
+    trigger:
+      type: robot_distance
+      distance_m: 3.75
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 6.4
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

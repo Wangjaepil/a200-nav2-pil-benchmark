@@ -1,0 +1,96 @@
+scenario: S5
+case_id: S5_20
+description: three staged crossings
+robot:
+  x: -5.266455
+  y: -2.182423
+  yaw: 2.792527
+goal:
+  x: -44.733545
+  y: 12.182423
+  yaw: 2.792527
+obstacles: []
+dynamic_obstacles:
+- name: s5_20_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -16.627409
+    y: 4.61307
+    yaw: -1.919862
+  motion:
+    end:
+      x: -18.337509
+      y: -0.085393
+      yaw: -1.919862
+    speed_mps: 0.6
+    trigger:
+      type: robot_distance
+      distance_m: 3.125
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.0
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4
+- name: s5_20_dyn_02
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -25.923454
+    y: 2.46283
+    yaw: 1.221731
+  motion:
+    end:
+      x: -24.076546
+      y: 7.53717
+      yaw: 1.221731
+    speed_mps: 0.45
+    trigger:
+      type: robot_distance
+      distance_m: 4.5
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.32
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4
+- name: s5_20_dyn_03
+  shape: box
+  mass: 55.0
+  pose:
+    x: -31.491481
+    y: 10.555239
+    yaw: -1.919862
+  motion:
+    end:
+      x: -33.543601
+      y: 4.917083
+      yaw: -1.919862
+    speed_mps: 0.75
+    trigger:
+      type: robot_distance
+      distance_m: 3.0
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.8
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  size:
+  - 0.7
+  - 0.55
+  - 0.9

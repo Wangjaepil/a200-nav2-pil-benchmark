@@ -1,0 +1,73 @@
+scenario: S4
+case_id: S4_08
+robot:
+  x: 40
+  y: -4
+  yaw: -2.356194
+goal:
+  x: 18.787
+  y: -25.213
+  yaw: -2.356194
+obstacles:
+- name: s4_08_main_L
+  shape: box
+  size:
+  - 22.0
+  - 0.6
+  - 1.5
+  pose:
+    x: 30.737
+    y: -15.95
+    yaw: -2.356194
+- name: s4_08_main_R
+  shape: box
+  size:
+  - 22.0
+  - 0.6
+  - 1.5
+  pose:
+    x: 28.05
+    y: -13.263
+    yaw: -2.356194
+- name: s4_08_wedge_01
+  shape: polygon
+  height: 1.5
+  points:
+  - - -0.9
+    - -0.7
+  - - 0.9
+    - 0.0
+  - - -0.9
+    - 0.7
+  pose:
+    x: 34.52
+    y: -11.248
+    yaw: -3.92699
+- name: s4_08_wedge_02
+  shape: polygon
+  height: 1.5
+  points:
+  - - -0.9
+    - -0.7
+  - - 0.9
+    - 0.0
+  - - -0.9
+    - 0.7
+  pose:
+    x: 28.51
+    y: -13.723
+    yaw: -0.785398
+- name: s4_08_wedge_03
+  shape: polygon
+  height: 1.5
+  points:
+  - - -0.9
+    - -0.7
+  - - 0.9
+    - 0.0
+  - - -0.9
+    - 0.7
+  pose:
+    x: 26.035
+    y: -19.733
+    yaw: -3.92699

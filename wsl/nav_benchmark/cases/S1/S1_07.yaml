@@ -1,0 +1,32 @@
+scenario: S1
+case_id: S1_07
+description: "중거리 하향 접근 + 얇고 긴 벽형 장애물"
+
+metadata:
+  nominal_start_goal_distance_m: 39.22
+  obstacle_path_ratio: 0.33
+  obstacle_lateral_offset_m: -0.15
+  obstacle_profile: "얇고 긴 벽형 직사각기둥"
+
+robot:
+  x: 18.00
+  y: 70.00
+  yaw: -2.0587
+
+goal:
+  x: 5.00
+  y: 33.00
+  yaw: -1.9087
+
+obstacles:
+  - name: obstacle_01
+    shape: box
+
+    pose:
+      x: 13.57
+      y: 57.84
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -2.8587
+
+    size: [3.60, 0.85, 1.60]

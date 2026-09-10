@@ -1,0 +1,66 @@
+costmap:
+  ros__parameters:
+
+    use_sim_time: true
+
+    # TF
+    global_frame: odom
+    robot_base_frame: base_link
+    transform_tolerance: 0.3
+
+    # Costmap 갱신
+    update_frequency: 5.0
+    publish_frequency: 2.0
+
+    # 로봇을 중심으로 따라다니는 Local Costmap
+    rolling_window: true
+
+    # 6 m x 6 m
+    width: 6
+    height: 6
+    resolution: 0.05
+
+    # 우선 테스트용 원형 footprint
+    robot_radius: 0.40
+
+    plugins:
+      - obstacle_layer
+      - inflation_layer
+
+    # ==========================================
+    # YDLIDAR G2 장애물 Layer
+    # ==========================================
+    obstacle_layer:
+      plugin: "nav2_costmap_2d::ObstacleLayer"
+      enabled: true
+
+      observation_sources: scan
+
+      scan:
+        topic: /scan
+        data_type: "LaserScan"
+
+        marking: true
+        clearing: true
+
+        # 장애물로 등록하는 거리
+        obstacle_min_range: 0.12
+        obstacle_max_range: 3.0
+
+        # 장애물이 사라졌을 때 clearing하는 거리
+        raytrace_min_range: 0.12
+        raytrace_max_range: 3.5
+
+        max_obstacle_height: 2.0
+
+    # ==========================================
+    # 장애물 주변 안전거리
+    # ==========================================
+    inflation_layer:
+      plugin: "nav2_costmap_2d::InflationLayer"
+      enabled: true
+
+      inflation_radius: 0.55
+      cost_scaling_factor: 3.0
+
+    always_send_full_costmap: true

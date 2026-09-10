@@ -1,0 +1,37 @@
+scenario: S1
+case_id: S1_09
+description: "중장거리 대각선 + 비뚤어진 사다리꼴"
+
+metadata:
+  nominal_start_goal_distance_m: 50.93
+  obstacle_path_ratio: 0.48
+  obstacle_lateral_offset_m: 0.00
+  obstacle_profile: "비뚤어진 사다리꼴"
+
+robot:
+  x: -55.00
+  y: 55.00
+  yaw: -0.7132
+
+goal:
+  x: -20.00
+  y: 18.00
+  yaw: -0.8132
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -38.20
+      y: 37.24
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -0.1632
+
+    height: 1.65
+    points:
+      - [-1.55, -0.85]
+      - [ 1.25, -0.65]
+      - [ 0.80,  1.00]
+      - [-0.75,  1.30]

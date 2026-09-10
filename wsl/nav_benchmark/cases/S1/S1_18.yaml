@@ -1,0 +1,39 @@
+scenario: S1
+case_id: S1_18
+description: "장거리 역대각선 + 큰 비대칭 육각형"
+
+metadata:
+  nominal_start_goal_distance_m: 70.71
+  obstacle_path_ratio: 0.41
+  obstacle_lateral_offset_m: 0.25
+  obstacle_profile: "큰 비대칭 육각기둥"
+
+robot:
+  x: 5.00
+  y: 75.00
+  yaw: -2.2762
+
+goal:
+  x: -45.00
+  y: 25.00
+  yaw: -2.3562
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -15.32
+      y: 54.32
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -2.7562
+
+    height: 2.00
+    points:
+      - [-1.80, -0.55]
+      - [-0.55, -1.45]
+      - [ 1.25, -1.20]
+      - [ 1.75,  0.20]
+      - [ 0.65,  1.55]
+      - [-1.40,  1.20]

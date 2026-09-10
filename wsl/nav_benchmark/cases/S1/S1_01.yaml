@@ -1,0 +1,36 @@
+scenario: S1
+case_id: S1_01
+description: "근거리 대각선 접근 + 비대칭 삼각 장애물"
+
+metadata:
+  nominal_start_goal_distance_m: 19.31
+  obstacle_path_ratio: 0.35
+  obstacle_lateral_offset_m: 0.00
+  obstacle_profile: "비대칭 삼각기둥"
+
+robot:
+  x: -48.00
+  y: -42.00
+  yaw: 0.3709
+
+goal:
+  x: -30.00
+  y: -35.00
+  yaw: 0.3709
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -41.70
+      y: -39.55
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: 0.9209
+
+    height: 1.50
+    points:
+      - [-1.20, -0.75]
+      - [ 1.05, -0.95]
+      - [ 0.20,  1.35]

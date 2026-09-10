@@ -1,0 +1,71 @@
+scenario: S4
+case_id: S4_03
+robot:
+  x: 12
+  y: -42
+  yaw: 0.785398
+goal:
+  x: 31.799
+  y: -22.201
+  yaw: 0.785398
+obstacles:
+- name: s4_03_funnel_a_L
+  shape: box
+  size:
+  - 5.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 15.306
+    y: -35.406
+    yaw: 0.785398
+- name: s4_03_funnel_a_R
+  shape: box
+  size:
+  - 5.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 18.594
+    y: -38.694
+    yaw: 0.785398
+- name: s4_03_funnel_b_L
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 19.478
+    y: -31.8
+    yaw: 0.785398
+- name: s4_03_funnel_b_R
+  shape: box
+  size:
+  - 5.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 22.2
+    y: -34.522
+    yaw: 0.785398
+- name: s4_03_funnel_c_L
+  shape: box
+  size:
+  - 5.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 23.579
+    y: -28.123
+    yaw: 0.785398
+- name: s4_03_funnel_c_R
+  shape: box
+  size:
+  - 5.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 25.877
+    y: -30.421
+    yaw: 0.785398

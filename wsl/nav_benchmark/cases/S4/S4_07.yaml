@@ -1,0 +1,63 @@
+scenario: S4
+case_id: S4_07
+robot:
+  x: 18
+  y: -10
+  yaw: 2.356194
+goal:
+  x: -4.627
+  y: 12.627
+  yaw: 2.356194
+obstacles:
+- name: s4_07_main_L
+  shape: box
+  size:
+  - 24.0
+  - 0.6
+  - 1.5
+  pose:
+    x: 5.343
+    y: -0.03
+    yaw: 2.356194
+- name: s4_07_main_R
+  shape: box
+  size:
+  - 24.0
+  - 0.6
+  - 1.5
+  pose:
+    x: 8.03
+    y: 2.657
+    yaw: 2.356194
+- name: s4_07_post_01
+  shape: cylinder
+  radius: 0.45
+  height: 1.5
+  pose:
+    x: 10.752
+    y: -4.52
+    yaw: 2.356194
+- name: s4_07_post_02
+  shape: cylinder
+  radius: 0.45
+  height: 1.5
+  pose:
+    x: 8.984
+    y: 0.783
+    yaw: 2.356194
+- name: s4_07_post_03
+  shape: cylinder
+  radius: 0.45
+  height: 1.5
+  pose:
+    x: 3.681
+    y: 2.551
+    yaw: 2.356194
+- name: s4_07_post_04
+  shape: cylinder
+  radius: 0.45
+  height: 1.5
+  pose:
+    x: 2.267
+    y: 7.501
+    yaw: 2.356194

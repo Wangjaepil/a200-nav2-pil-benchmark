@@ -1,0 +1,32 @@
+scenario: S1
+case_id: S1_03
+description: "중거리 세로 접근 + 긴 기울어진 장애물"
+
+metadata:
+  nominal_start_goal_distance_m: 32.31
+  obstacle_path_ratio: 0.28
+  obstacle_lateral_offset_m: -0.30
+  obstacle_profile: "길고 약간 기울어진 직사각기둥"
+
+robot:
+  x: -20.00
+  y: -68.00
+  yaw: 1.0703
+
+goal:
+  x: -8.00
+  y: -38.00
+  yaw: 1.1903
+
+obstacles:
+  - name: obstacle_01
+    shape: box
+
+    pose:
+      x: -16.36
+      y: -59.71
+      roll: 0.1000
+      pitch: -0.0600
+      yaw: 0.1403
+
+    size: [1.20, 3.80, 1.45]

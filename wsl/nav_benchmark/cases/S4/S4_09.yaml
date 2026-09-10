@@ -1,0 +1,111 @@
+scenario: S4
+case_id: S4_09
+robot:
+  x: -38
+  y: 26
+  yaw: 0.3
+goal:
+  x: -4.563
+  y: 36.343
+  yaw: 0.3
+obstacles:
+- name: s4_09_var_a_L
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -32.881
+    y: 29.755
+    yaw: 0.3
+- name: s4_09_var_a_R
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -31.655
+    y: 25.791
+    yaw: 0.3
+- name: s4_09_var_b_L
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -27.134
+    y: 31.481
+    yaw: 0.3
+- name: s4_09_var_b_R
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -26.056
+    y: 27.994
+    yaw: 0.3
+- name: s4_09_var_c_L
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -21.24
+    y: 32.728
+    yaw: 0.3
+- name: s4_09_var_c_R
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -20.309
+    y: 29.719
+    yaw: 0.3
+- name: s4_09_var_d_L
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -15.552
+    y: 34.645
+    yaw: 0.3
+- name: s4_09_var_d_R
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -14.71
+    y: 31.922
+    yaw: 0.3
+- name: s4_09_var_e_L
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -9.85
+    y: 36.514
+    yaw: 0.3
+- name: s4_09_var_e_R
+  shape: box
+  size:
+  - 6.0
+  - 0.65
+  - 1.5
+  pose:
+    x: -8.83
+    y: 33.218
+    yaw: 0.3

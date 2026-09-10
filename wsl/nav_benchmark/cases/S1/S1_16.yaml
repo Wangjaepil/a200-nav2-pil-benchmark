@@ -1,0 +1,36 @@
+scenario: S1
+case_id: S1_16
+description: "장거리 좌하향 + 넓은 대형 삼각형"
+
+metadata:
+  nominal_start_goal_distance_m: 65.00
+  obstacle_path_ratio: 0.46
+  obstacle_lateral_offset_m: 0.40
+  obstacle_profile: "넓은 대형 삼각기둥"
+
+robot:
+  x: 75.00
+  y: 20.00
+  yaw: -2.7468
+
+goal:
+  x: 15.00
+  y: -5.00
+  yaw: -2.7468
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: 47.55
+      y: 8.13
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -3.5968
+
+    height: 1.60
+    points:
+      - [-2.05, -0.65]
+      - [ 1.65, -1.00]
+      - [ 0.65,  1.70]

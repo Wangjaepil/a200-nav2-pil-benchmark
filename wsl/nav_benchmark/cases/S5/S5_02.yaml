@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_02
+description: reverse-side perpendicular crossing
+robot:
+  x: 15.0
+  y: -35.0
+  yaw: 3.141593
+goal:
+  x: -15.0
+  y: -35.0
+  yaw: 3.141593
+obstacles: []
+dynamic_obstacles:
+- name: s5_02_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -0.0
+    y: -37.5
+    yaw: 1.570796
+  motion:
+    end:
+      x: 0.0
+      y: -32.5
+      yaw: 1.570796
+    speed_mps: 0.55
+    trigger:
+      type: robot_distance
+      distance_m: 3.409
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.0
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

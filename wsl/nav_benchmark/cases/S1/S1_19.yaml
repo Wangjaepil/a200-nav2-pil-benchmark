@@ -1,0 +1,43 @@
+scenario: S1
+case_id: S1_19
+description: "원거리 대각선 + 불규칙 십각형"
+
+metadata:
+  nominal_start_goal_distance_m: 80.43
+  obstacle_path_ratio: 0.57
+  obstacle_lateral_offset_m: -0.20
+  obstacle_profile: "타원처럼 찌그러진 불규칙 십각기둥"
+
+robot:
+  x: 68.00
+  y: -65.00
+  yaw: 2.4707
+
+goal:
+  x: 5.00
+  y: -15.00
+  yaw: 2.4707
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: 32.21
+      y: -36.34
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: 2.6707
+
+    height: 1.70
+    points:
+      - [-1.75, -0.20]
+      - [-1.35, -0.95]
+      - [-0.45, -1.30]
+      - [ 0.55, -1.15]
+      - [ 1.55, -0.55]
+      - [ 1.85,  0.20]
+      - [ 1.15,  0.95]
+      - [ 0.15,  1.35]
+      - [-0.95,  1.10]
+      - [-1.55,  0.55]

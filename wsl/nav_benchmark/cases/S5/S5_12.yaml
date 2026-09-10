@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_12
+description: early-route crossing
+robot:
+  x: -24.658743
+  y: 32.386665
+  yaw: -1.308997
+goal:
+  x: -15.341257
+  y: -2.386665
+  yaw: -1.308997
+obstacles: []
+dynamic_obstacles:
+- name: s5_12_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -24.450692
+    y: 20.019098
+    yaw: 0.261799
+  motion:
+    end:
+      x: -18.655137
+      y: 21.572012
+      yaw: 0.261799
+    speed_mps: 0.65
+    trigger:
+      type: robot_distance
+      distance_m: 3.462
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.8
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

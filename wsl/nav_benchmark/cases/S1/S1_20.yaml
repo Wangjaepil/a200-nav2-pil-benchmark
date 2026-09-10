@@ -1,0 +1,40 @@
+scenario: S1
+case_id: S1_20
+description: "S1 최고거리 + 대형 기울기 불규칙 다각형"
+
+metadata:
+  nominal_start_goal_distance_m: 85.76
+  obstacle_path_ratio: 0.70
+  obstacle_lateral_offset_m: 0.00
+  obstacle_profile: "큰 3D 기울기 불규칙 칠각기둥"
+
+robot:
+  x: -78.00
+  y: 10.00
+  yaw: -0.7024
+
+goal:
+  x: -5.00
+  y: -35.00
+  yaw: -0.5524
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -26.90
+      y: -21.50
+      roll: 0.0900
+      pitch: -0.0700
+      yaw: -1.6524
+
+    height: 2.10
+    points:
+      - [-2.10, -0.65]
+      - [-0.80, -1.55]
+      - [ 0.95, -1.35]
+      - [ 2.00, -0.20]
+      - [ 1.10,  1.55]
+      - [-1.30,  1.35]
+      - [-2.20,  0.35]

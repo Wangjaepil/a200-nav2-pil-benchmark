@@ -1,0 +1,38 @@
+scenario: S1
+case_id: S1_04
+description: "중거리 역대각선 + 불규칙 오각형"
+
+metadata:
+  nominal_start_goal_distance_m: 37.80
+  obstacle_path_ratio: 0.68
+  obstacle_lateral_offset_m: 0.10
+  obstacle_profile: "불규칙 오각기둥"
+
+robot:
+  x: 55.00
+  y: -58.00
+  yaw: 2.2249
+
+goal:
+  x: 32.00
+  y: -28.00
+  yaw: 2.2249
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: 39.28
+      y: -37.66
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: 3.1249
+
+    height: 1.70
+    points:
+      - [-1.15, -0.70]
+      - [ 0.55, -1.05]
+      - [ 1.35,  0.05]
+      - [ 0.45,  1.20]
+      - [-1.20,  0.65]

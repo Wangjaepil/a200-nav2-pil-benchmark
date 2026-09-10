@@ -1,0 +1,67 @@
+scenario: S5
+case_id: S5_14
+description: two sequential same-side crossings
+robot:
+  x: 13.435029
+  y: -23.435029
+  yaw: 2.356194
+goal:
+  x: -13.435029
+  y: 3.435029
+  yaw: 2.356194
+obstacles: []
+dynamic_obstacles:
+- name: s5_14_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: 4.525483
+    y: -11.131371
+    yaw: -2.356194
+  motion:
+    end:
+      x: 1.131371
+      y: -14.525483
+      yaw: -2.356194
+    speed_mps: 0.45
+    trigger:
+      type: robot_distance
+      distance_m: 4.0
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.84
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4
+- name: s5_14_dyn_02
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -0.707107
+    y: -5.050253
+    yaw: -2.356194
+  motion:
+    end:
+      x: -4.949747
+      y: -9.292893
+      yaw: -2.356194
+    speed_mps: 0.8
+    trigger:
+      type: robot_distance
+      distance_m: 2.812
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.8
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

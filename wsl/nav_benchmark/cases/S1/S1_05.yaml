@@ -1,0 +1,36 @@
+scenario: S1
+case_id: S1_05
+description: "중거리 좌하향 접근 + 부등변 삼각형"
+
+metadata:
+  nominal_start_goal_distance_m: 32.02
+  obstacle_path_ratio: 0.42
+  obstacle_lateral_offset_m: -0.20
+  obstacle_profile: "가늘고 긴 부등변 삼각기둥"
+
+robot:
+  x: 60.00
+  y: 42.00
+  yaw: -2.2869
+
+goal:
+  x: 35.00
+  y: 22.00
+  yaw: -2.4669
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: 49.38
+      y: 33.76
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -3.1669
+
+    height: 1.40
+    points:
+      - [-1.55, -0.45]
+      - [ 0.95, -0.95]
+      - [ 0.35,  1.45]

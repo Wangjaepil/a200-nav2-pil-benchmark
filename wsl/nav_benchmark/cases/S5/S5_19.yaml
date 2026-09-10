@@ -1,0 +1,42 @@
+scenario: S5
+case_id: S5_19
+description: wide cart enters and stops just beyond route
+robot:
+  x: 31.156363
+  y: -21.914467
+  yaw: 1.919862
+goal:
+  x: 18.843637
+  y: 11.914467
+  yaw: 1.919862
+obstacles: []
+dynamic_obstacles:
+- name: s5_19_dyn_01
+  shape: box
+  mass: 85.0
+  pose:
+    x: 28.007016
+    y: -3.905536
+    yaw: -2.792527
+  motion:
+    end:
+      x: 24.812061
+      y: -5.068404
+      yaw: -2.792527
+    speed_mps: 0.35
+    trigger:
+      type: robot_distance
+      distance_m: 6.857
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 2.72
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: true
+  size:
+  - 1.0
+  - 0.75
+  - 1.1

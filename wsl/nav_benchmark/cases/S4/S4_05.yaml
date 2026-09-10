@@ -1,0 +1,91 @@
+scenario: S4
+case_id: S4_05
+robot:
+  x: -42
+  y: -8
+  yaw: 3.141593
+goal:
+  x: -73.0
+  y: -8.0
+  yaw: 3.141593
+obstacles:
+- name: s4_05_s1_L
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -49.0
+    y: -9.9
+    yaw: 3.141593
+- name: s4_05_s1_R
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -49.0
+    y: -6.1
+    yaw: 3.141593
+- name: s4_05_s2_L
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -55.0
+    y: -10.5
+    yaw: 3.141593
+- name: s4_05_s2_R
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -55.0
+    y: -6.9
+    yaw: 3.141593
+- name: s4_05_s3_L
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -61.0
+    y: -9.5
+    yaw: 3.141593
+- name: s4_05_s3_R
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -61.0
+    y: -6.1
+    yaw: 3.141593
+- name: s4_05_s4_L
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -67.0
+    y: -10.2
+    yaw: 3.141593
+- name: s4_05_s4_R
+  shape: box
+  size:
+  - 6.0
+  - 0.6
+  - 1.5
+  pose:
+    x: -67.0
+    y: -6.8
+    yaw: 3.141593

@@ -1,0 +1,32 @@
+scenario: S1
+case_id: S1_17
+description: "장거리 대각선 + 3D 기울기 장벽형 장애물"
+
+metadata:
+  nominal_start_goal_distance_m: 68.01
+  obstacle_path_ratio: 0.62
+  obstacle_lateral_offset_m: -0.10
+  obstacle_profile: "3D로 살짝 기울어진 긴 직사각기둥"
+
+robot:
+  x: -40.00
+  y: -70.00
+  yaw: 0.5088
+
+goal:
+  x: 15.00
+  y: -30.00
+  yaw: 0.6288
+
+obstacles:
+  - name: obstacle_01
+    shape: box
+
+    pose:
+      x: -5.84
+      y: -45.28
+      roll: -0.0800
+      pitch: 0.0900
+      yaw: 1.9288
+
+    size: [4.50, 1.00, 1.55]

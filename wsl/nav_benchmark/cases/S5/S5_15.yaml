@@ -1,0 +1,67 @@
+scenario: S5
+case_id: S5_15
+description: opposing close double crossing
+robot:
+  x: -12.727922
+  y: 22.727922
+  yaw: -0.785398
+goal:
+  x: 12.727922
+  y: -2.727922
+  yaw: -0.785398
+obstacles: []
+dynamic_obstacles:
+- name: s5_15_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -2.687006
+    y: 9.010051
+    yaw: 0.785398
+  motion:
+    end:
+      x: 0.989949
+      y: 12.687006
+      yaw: 0.785398
+    speed_mps: 0.55
+    trigger:
+      type: robot_distance
+      distance_m: 3.545
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.16
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4
+- name: s5_15_dyn_02
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: 2.687006
+    y: 10.989949
+    yaw: -2.356194
+  motion:
+    end:
+      x: -0.989949
+      y: 7.312994
+      yaw: -2.356194
+    speed_mps: 0.55
+    trigger:
+      type: robot_distance
+      distance_m: 3.545
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 4.16
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

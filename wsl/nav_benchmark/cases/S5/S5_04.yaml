@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_04
+description: slow pedestrian crossing
+robot:
+  x: -35.0
+  y: 15.0
+  yaw: -1.570796
+goal:
+  x: -35.0
+  y: -15.0
+  yaw: -1.570796
+obstacles: []
+dynamic_obstacles:
+- name: s5_04_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -37.2
+    y: -0.0
+    yaw: 0.0
+  motion:
+    end:
+      x: -32.8
+      y: 0.0
+      yaw: 0.0
+    speed_mps: 0.3
+    trigger:
+      type: robot_distance
+      distance_m: 5.5
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.52
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

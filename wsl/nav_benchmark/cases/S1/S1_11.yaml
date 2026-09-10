@@ -1,0 +1,41 @@
+scenario: S1
+case_id: S1_11
+description: "중장거리 대각선 + 기울어진 팔각형"
+
+metadata:
+  nominal_start_goal_distance_m: 56.82
+  obstacle_path_ratio: 0.30
+  obstacle_lateral_offset_m: 0.20
+  obstacle_profile: "살짝 기울어진 불규칙 팔각기둥"
+
+robot:
+  x: -75.00
+  y: -45.00
+  yaw: 0.4951
+
+goal:
+  x: -25.00
+  y: -18.00
+  yaw: 0.4951
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -60.10
+      y: -36.72
+      roll: 0.0700
+      pitch: 0.0500
+      yaw: 0.8451
+
+    height: 1.90
+    points:
+      - [-1.35, -0.30]
+      - [-0.85, -1.05]
+      - [ 0.10, -1.35]
+      - [ 1.15, -0.90]
+      - [ 1.50,  0.10]
+      - [ 0.90,  1.05]
+      - [-0.05,  1.40]
+      - [-1.20,  0.85]

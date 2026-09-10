@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_07
+description: small agile obstacle
+robot:
+  x: -47.990381
+  y: 42.5
+  yaw: -0.523599
+goal:
+  x: -22.009619
+  y: 27.5
+  yaw: -0.523599
+obstacles: []
+dynamic_obstacles:
+- name: s5_07_dyn_01
+  shape: cylinder
+  mass: 25.0
+  pose:
+    x: -36.0
+    y: 33.267949
+    yaw: 1.047198
+  motion:
+    end:
+      x: -33.8
+      y: 37.078461
+      yaw: 1.047198
+    speed_mps: 0.75
+    trigger:
+      type: robot_distance
+      distance_m: 2.5
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.52
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.25
+  height: 1.4

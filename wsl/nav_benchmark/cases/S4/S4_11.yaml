@@ -1,0 +1,107 @@
+scenario: S4
+case_id: S4_11
+robot:
+  x: 28.0
+  y: 28.0
+  yaw: -0.35
+goal:
+  x: 59.939
+  y: 16.341
+  yaw: -0.35
+obstacles:
+- name: s4_11_wall_L1
+  shape: box
+  size:
+  - 10.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 36.201
+    y: 27.136
+    yaw: -0.35
+- name: s4_11_wall_R1
+  shape: box
+  size:
+  - 10.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 34.829
+    y: 23.378
+    yaw: -0.35
+- name: s4_11_block_R1
+  shape: box
+  size:
+  - 2.2
+  - 1.6
+  - 1.5
+  pose:
+    x: 39.8
+    y: 22.415
+    yaw: -0.25
+- name: s4_11_post_L1
+  shape: cylinder
+  radius: 0.5
+  height: 1.5
+  pose:
+    x: 41.683
+    y: 24.655
+    yaw: -0.35
+- name: s4_11_wall_L2
+  shape: box
+  size:
+  - 10.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 48.464
+    y: 22.819
+    yaw: -0.35
+- name: s4_11_wall_R2
+  shape: box
+  size:
+  - 10.0
+  - 0.65
+  - 1.5
+  pose:
+    x: 46.99
+    y: 18.779
+    yaw: -0.35
+- name: s4_11_block_L2
+  shape: box
+  size:
+  - 2.4
+  - 1.7
+  - 1.5
+  pose:
+    x: 50.974
+    y: 20.945
+    yaw: -0.47
+- name: s4_11_post_R2
+  shape: cylinder
+  radius: 0.5
+  height: 1.5
+  pose:
+    x: 50.919
+    y: 17.878
+    yaw: -0.35
+- name: s4_11_exit_L
+  shape: box
+  size:
+  - 4.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 56.713
+    y: 19.169
+    yaw: -0.35
+- name: s4_11_exit_R
+  shape: box
+  size:
+  - 4.5
+  - 0.65
+  - 1.5
+  pose:
+    x: 55.65
+    y: 16.257
+    yaw: -0.35

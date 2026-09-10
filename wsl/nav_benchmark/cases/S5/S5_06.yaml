@@ -1,0 +1,40 @@
+scenario: S5
+case_id: S5_06
+description: backward oblique crossing
+robot:
+  x: 49.722432
+  y: -8.5
+  yaw: 2.617994
+goal:
+  x: 20.277568
+  y: 8.5
+  yaw: 2.617994
+obstacles: []
+dynamic_obstacles:
+- name: s5_06_dyn_01
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: 34.841154
+    y: 3.324871
+    yaw: -1.602586
+  motion:
+    end:
+      x: 34.63923
+      y: -3.024871
+      yaw: -1.602586
+    speed_mps: 0.55
+    trigger:
+      type: robot_distance
+      distance_m: 4.332
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 5.082
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

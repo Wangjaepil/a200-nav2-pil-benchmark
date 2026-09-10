@@ -1,0 +1,17 @@
+serial_number: a200-0000
+version: 0
+
+system:
+  hosts:
+    - hostname: a200-0000
+      ip: 127.0.0.1
+  ros2:
+    namespace: a200_0000
+
+platform:
+  controller: ps4
+  enable_ekf: true
+
+  extras:
+    urdf:
+      path: /home/tb-pil/clearpath/extras/g2_lidar.urdf.xacro

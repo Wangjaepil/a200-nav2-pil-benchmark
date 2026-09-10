@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Front GPS -->
+  <link name="gps_front_link"/>
+
+  <joint name="gps_front_joint" type="fixed">
+    <parent link="default_mount"/>
+    <child link="gps_front_link"/>
+    <origin xyz="0.30 0 0.18" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="gps_front_link">
+    <sensor name="gps_front" type="navsat">
+      <topic>/gps/front</topic>
+      <update_rate>10.0</update_rate>
+      <always_on>true</always_on>
+      <gz_frame_id>gps_front_link</gz_frame_id>
+    </sensor>
+  </gazebo>
+
+
+  <!-- Rear GPS -->
+  <link name="gps_rear_link"/>
+
+  <joint name="gps_rear_joint" type="fixed">
+    <parent link="default_mount"/>
+    <child link="gps_rear_link"/>
+    <origin xyz="-0.30 0 0.18" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="gps_rear_link">
+    <sensor name="gps_rear" type="navsat">
+      <topic>/gps/rear</topic>
+      <update_rate>10.0</update_rate>
+      <always_on>true</always_on>
+      <gz_frame_id>gps_rear_link</gz_frame_id>
+    </sensor>
+  </gazebo>
+
+
+  <!-- YDLIDAR G2 -->
+  <link name="laser_frame">
+
+    <visual>
+      <geometry>
+        <cylinder radius="0.035" length="0.04"/>
+      </geometry>
+      <origin xyz="0 0 0.02"/>
+
+      <material name="lidar_black">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+
+    <collision>
+      <geometry>
+        <cylinder radius="0.035" length="0.04"/>
+      </geometry>
+      <origin xyz="0 0 0.02"/>
+    </collision>
+
+    <inertial>
+      <mass value="0.15"/>
+      <origin xyz="0 0 0.02"/>
+
+      <inertia
+        ixx="0.0001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0001"
+        iyz="0.0"
+        izz="0.0001"/>
+    </inertial>
+
+  </link>
+
+  <joint name="laser_joint" type="fixed">
+    <parent link="default_mount"/>
+    <child link="laser_frame"/>
+    <origin xyz="0.0 0.0 0.15"
+            rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="laser_frame">
+
+    <sensor name="ydlidar_g2" type="gpu_lidar">
+
+      <pose>0 0 0 0 0 0</pose>
+
+      <topic>scan</topic>
+
+      <gz_frame_id>laser_frame</gz_frame_id>
+
+      <update_rate>7.0</update_rate>
+
+      <ray>
+
+        <scan>
+          <horizontal>
+
+            <samples>756</samples>
+
+            <resolution>1</resolution>
+
+            <min_angle>-3.14159265</min_angle>
+            <max_angle>3.14159265</max_angle>
+
+          </horizontal>
+        </scan>
+
+        <range>
+
+          <min>0.12</min>
+          <max>12.0</max>
+
+          <resolution>0.01</resolution>
+
+        </range>
+
+      </ray>
+
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+
+    </sensor>
+
+  </gazebo>
+
+</robot>

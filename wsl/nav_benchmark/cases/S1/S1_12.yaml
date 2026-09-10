@@ -1,0 +1,32 @@
+scenario: S1
+case_id: S1_12
+description: "장거리 역대각선 + 회전 정사각형"
+
+metadata:
+  nominal_start_goal_distance_m: 64.03
+  obstacle_path_ratio: 0.66
+  obstacle_lateral_offset_m: -0.25
+  obstacle_profile: "회전된 큰 정사각기둥"
+
+robot:
+  x: 70.00
+  y: 55.00
+  yaw: -2.3469
+
+goal:
+  x: 20.00
+  y: 15.00
+  yaw: -2.4669
+
+obstacles:
+  - name: obstacle_01
+    shape: box
+
+    pose:
+      x: 36.84
+      y: 28.80
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -1.6869
+
+    size: [2.65, 2.65, 1.80]

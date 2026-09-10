@@ -1,0 +1,37 @@
+scenario: S1
+case_id: S1_13
+description: "장거리 거의 수평 + 찌그러진 사각형"
+
+metadata:
+  nominal_start_goal_distance_m: 50.25
+  obstacle_path_ratio: 0.52
+  obstacle_lateral_offset_m: 0.15
+  obstacle_profile: "크게 찌그러진 사각기둥"
+
+robot:
+  x: -60.00
+  y: 30.00
+  yaw: 0.0997
+
+goal:
+  x: -10.00
+  y: 35.00
+  yaw: 0.0997
+
+obstacles:
+  - name: obstacle_01
+    shape: polygon
+
+    pose:
+      x: -34.01
+      y: 32.75
+      roll: 0.0000
+      pitch: 0.0000
+      yaw: -0.4503
+
+    height: 1.55
+    points:
+      - [-1.65, -0.65]
+      - [ 1.45, -0.90]
+      - [ 1.05,  0.95]
+      - [-0.95,  1.25]

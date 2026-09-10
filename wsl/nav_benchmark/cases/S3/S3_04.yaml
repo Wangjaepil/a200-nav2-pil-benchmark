@@ -1,0 +1,41 @@
+scenario: S3
+case_id: S3_04
+robot:
+  x: 34
+  y: -40
+  yaw: -0.785398
+goal:
+  x: 53.799
+  y: -59.799
+  yaw: -0.785398
+obstacles:
+- name: s3_04_obs_01
+  shape: box
+  size:
+  - 2.508
+  - 4.334
+  - 1.5
+  pose:
+    x: 38.226
+    y: -42.406
+    yaw: -0.785398
+- name: s3_04_obs_02
+  shape: box
+  size:
+  - 2.706
+  - 3.85
+  - 1.5
+  pose:
+    x: 43.408
+    y: -50.787
+    yaw: -0.705398
+- name: s3_04_obs_03
+  shape: box
+  size:
+  - 2.31
+  - 4.092
+  - 1.5
+  pose:
+    x: 51.678
+    y: -56.079
+    yaw: -0.885398

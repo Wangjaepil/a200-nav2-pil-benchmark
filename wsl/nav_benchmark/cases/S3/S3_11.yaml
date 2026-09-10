@@ -1,0 +1,65 @@
+scenario: S3
+case_id: S3_11
+robot:
+  x: 10
+  y: 14
+  yaw: -0.5
+goal:
+  x: 45.103
+  y: -5.177
+  yaw: -0.5
+obstacles:
+- name: s3_11_obs_01
+  shape: polygon
+  height: 1.5
+  points:
+  - - -1.5
+    - -1.495
+  - - -0.225
+    - -2.3
+  - - 1.5
+    - -0.69
+  - - 1.125
+    - 1.955
+  - - -0.825
+    - 2.3
+  pose:
+    x: 15.752
+    y: 10.971
+    yaw: -0.38
+- name: s3_11_obs_02
+  shape: box
+  size:
+  - 2.5
+  - 3.9
+  - 1.5
+  pose:
+    x: 18.695
+    y: 6.971
+    yaw: -0.6
+- name: s3_11_obs_03
+  shape: cylinder
+  radius: 1.25
+  height: 1.5
+  pose:
+    x: 23.588
+    y: 8.628
+    yaw: -0.5
+- name: s3_11_obs_04
+  shape: box
+  size:
+  - 3.4
+  - 5.0
+  - 1.5
+  pose:
+    x: 28.285
+    y: 3.669
+    yaw: -0.35
+- name: s3_11_obs_05
+  shape: cylinder
+  radius: 1.15
+  height: 1.5
+  pose:
+    x: 35.778
+    y: 1.741
+    yaw: -0.5
