@@ -1,0 +1,44 @@
+# ROS 2 / colcon
+**/build/
+**/install/
+**/log/
+
+# Python
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Benchmark runtime outputs
+**/results/
+**/runner_logs/
+**/logs/
+**/pids/
+**/backups/
+*.log
+run_*.zip
+
+# ROS / Gazebo runtime data
+.ros/
+.gz/
+*.bag
+*.db3
+*.mcap
+*.sqlite3
+
+# Compiled files
+*.o
+*.so
+*.a
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pem
+*.key
