@@ -1,0 +1,73 @@
+a200_predictive_collision_monitor:
+  ros__parameters:
+    use_sim_time: true
+
+    # Enforced Mode v0.2 command chain:
+    # Nav2 -> /cmd_vel_predictive_in -> this node -> /cmd_vel_raw
+    #      -> official Nav2 Collision Monitor -> A200 platform
+    cmd_vel_topic: /cmd_vel_predictive_in
+    enable_velocity_output: true
+    cmd_vel_out_topic: /cmd_vel_raw
+    tracked_obstacles_topic: /tracked_obstacles
+    state_topic: /predictive_collision_state
+
+    base_frame: base_link
+    tracked_obstacle_timeout_sec: 0.75
+    future_stamp_tolerance_sec: 0.10
+    transform_timeout_sec: 0.10
+
+    footprint_half_length_m: 0.494
+    footprint_half_width_m: 0.335
+
+    base_safety_margin_m: 0.20
+    minimum_obstacle_radius_m: 0.10
+    uncertainty_sigma_multiplier: 1.0
+    maximum_uncertainty_margin_m: 0.35
+
+    prediction_horizon_sec: 3.0
+    simulation_time_step_sec: 0.05
+    minimum_dynamic_speed_mps: 0.15
+
+    slow_ttc_sec: 2.5
+    stop_ttc_sec: 1.0
+
+    # ----------------------------------------------------------
+    # Crossing Yield Supervisor
+    # ----------------------------------------------------------
+    # A laterally crossing obstacle is given priority. Once latched, a
+    # temporary TTC PASS caused by DWB steering cannot release the robot.
+    crossing_yield_enabled: true
+
+    # The ordinary TTC evaluator first applies proportional slowdown from
+    # 2.5 s. A lateral crossing is latched as a full yield at 2.0 s, leaving
+    # braking margin without stopping at the edge of the full 3 s horizon.
+    crossing_yield_entry_ttc_sec: 2.0
+    crossing_yield_min_angle_deg: 50.0
+    crossing_yield_min_lateral_speed_mps: 0.25
+
+    # If the target stops in the route, wait for a stable classification and
+    # then hand it back to the ordinary Nav2 costmap/DWB static-obstacle path.
+    crossing_yield_stationary_speed_mps: 0.12
+    crossing_yield_stationary_hold_sec: 1.5
+    # Also suppresses immediate re-latching of a target that has already
+    # crossed the locked corridor. Ordinary TTC SLOW/STOP remains active.
+    crossing_yield_static_handoff_cooldown_sec: 2.0
+
+    # Moving-target release requires it to pass completely beyond the locked
+    # route corridor. A missing target also requires fresh clear scans for a
+    # bounded interval; one dropped track cannot release the stop.
+    crossing_yield_passed_clearance_margin_m: 0.15
+    crossing_yield_passed_clear_hold_sec: 0.8
+    crossing_yield_target_lost_hold_sec: 1.0
+
+    # Danger is applied immediately. Release requires stable clearance.
+    minimum_stop_hold_sec: 0.50
+    # Crossing release already includes its own 0.8 s corridor-clear hold.
+    # Four additional 10 Hz PASS samples are enough to release the generic
+    # stop latch without adding another full 0.8 s wait.
+    stop_clear_hold_sec: 0.40
+    slow_clear_hold_sec: 0.40
+
+    # Restore full scale over about 0.5 s instead of crawling from 0 to 1 for
+    # a full second. Downward scale changes and STOP remain immediate.
+    scale_release_rate_per_sec: 2.0

@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 # ============================================================
-# Pi Nav Benchmark Stack Manager v1.6
+# Pi Nav Benchmark Stack Manager v1.7
 # - Keeps hil_router OUTSIDE this manager.
 # - Manages localization, Nav2 lifecycle servers, Adaptive Escape,
-#   Collision Monitor, and Far Goal Manager.
+#   predictive dynamic-obstacle safety, Collision Monitor, and Far Goal Manager.
 # - Each managed process runs in its own process group so stop() can
 #   reliably terminate the entire ros2 run process tree.
 #
@@ -13,7 +13,15 @@ set -Eeuo pipefail
 #   start_localization | start_nav2 | configure | activate
 #   start_far_goal | status | verify | stop
 #
-# Fixes vs v1.5:
+# v1.7 predictive-safety integration:
+#   * prox_mpc_obstacle_tracker estimates dynamic-obstacle motion from /scan.
+#   * a200_predictive_collision_monitor filters Nav2 velocity commands using
+#     predicted TTC before the official Nav2 Collision Monitor.
+#   * Enforced command chain:
+#       Nav2 -> /cmd_vel_predictive_in -> predictive filter -> /cmd_vel_raw
+#            -> Nav2 Collision Monitor -> /a200_0000/platform/cmd_vel
+#
+# Fixes retained from v1.6:
 #   * SIGINT was ignored by EVERY managed node. bash gives asynchronous
 #     ("&") commands SIG_IGN for SIGINT when job control is off, and that
 #     survives exec, so `kill -INT -- -PGID` was a no-op: the graceful
@@ -101,7 +109,7 @@ START_CHILD_WAIT_SEC=6          # wait for the real node process to appear
 START_SETTLE_SEC=1.5            # ... and confirm it is still alive after this
 START_NAV2_BUDGET_SEC=65        # PC allows 80s
 LIFECYCLE_PHASE_BUDGET_SEC=75   # PC allows 90s for configure/activate
-# Two nested budgets, both shared across all 9 processes, so `stop` cannot
+# Two nested budgets, both shared across all managed processes, so `stop` cannot
 # be pushed past the PC's 70s SSH timeout no matter how many nodes hang:
 #   - grace budget: how long SIGINT (clean Nav2 shutdown) may be waited on
 #   - hard budget:  when it expires, escalate straight to SIGKILL
@@ -131,10 +139,17 @@ LOCALIZATION_PROCESSES=(
   navsat_transform
 )
 
+PREDICTIVE_SAFETY_PROCESSES=(
+  obstacle_tracker
+  predictive_safety
+)
+
 MANAGED_PROCESSES=(
   dual_gps_heading
   global_ekf
   navsat_transform
+  obstacle_tracker
+  predictive_safety
   controller_server
   planner_server
   behavior_server
@@ -150,6 +165,8 @@ declare -A PROCESS_MATCH=(
   [dual_gps_heading]='[/]dual_gps_heading/heading_node'
   [global_ekf]='[/]robot_localization/ekf_node'
   [navsat_transform]='[/]robot_localization/navsat_transform_node'
+  [obstacle_tracker]='[/]prox_mpc_obstacle_tracker/obstacle_tracker'
+  [predictive_safety]='[/]a200_predictive_collision_monitor/predictive_collision_monitor'
   [controller_server]='[/]nav2_controller/controller_server'
   [planner_server]='[/]nav2_planner/planner_server'
   [behavior_server]='[/]nav2_behaviors/behavior_server'
@@ -163,6 +180,8 @@ STOP_ORDER=(
   far_goal
   bt_navigator
   collision_monitor
+  predictive_safety
+  obstacle_tracker
   behavior_server
   planner_server
   controller_server
@@ -636,13 +655,44 @@ start_nav2() {
 
   PHASE_DEADLINE=$((SECONDS + START_NAV2_BUDGET_SEC))
 
+  # The tracker is self-configuring/self-activating. It may start before TF
+  # becomes available; scans are skipped safely until odom <- laser_frame is
+  # ready. Thirty 0.1 s samples cover the predictive monitor's 3.0 s horizon.
+  start_process "obstacle_tracker" \
+    "source ${HOME}/predictive_safety_ws/install/setup.bash && \
+     exec ros2 run prox_mpc_obstacle_tracker obstacle_tracker \
+       --ros-args \
+       -p scan_topic:=/scan \
+       -p output_topic:=/tracked_obstacles \
+       -p tracking_frame:=odom \
+       -p min_detection_range:=0.12 \
+       -p max_detection_range:=5.0 \
+       -p max_cluster_radius:=0.6 \
+       -p transform_timeout:=0.2 \
+       -p imm_enabled:=true \
+       -p confirm_count:=3 \
+       -p prediction_steps:=30 \
+       -p prediction_dt:=0.1 \
+       ${TF_REMAPS} \
+       ${SIM_TIME_ARG}"
+
+  # Enforced predictive velocity filter. It fails closed when tracking data
+  # is absent or stale, and publishes only to the existing Collision Monitor.
+  start_process "predictive_safety" \
+    "source ${HOME}/predictive_safety_ws/install/setup.bash && \
+     exec ros2 run a200_predictive_collision_monitor predictive_collision_monitor \
+       --ros-args \
+       --params-file ${HOME}/predictive_safety_ws/install/a200_predictive_collision_monitor/share/a200_predictive_collision_monitor/config/predictive_velocity_filter.yaml \
+       ${TF_REMAPS} \
+       ${SIM_TIME_ARG}"
+
   start_process "controller_server" \
     "exec ros2 run nav2_controller controller_server \
        --ros-args \
        --params-file ${HOME}/pil_controller.yaml \
        ${TF_REMAPS} \
        ${SIM_TIME_ARG} \
-       -r /cmd_vel:=/cmd_vel_raw"
+       -r /cmd_vel:=/cmd_vel_predictive_in"
 
   start_process "planner_server" \
     "exec ros2 run nav2_planner planner_server \
@@ -658,7 +708,7 @@ start_nav2() {
        --params-file ${HOME}/pil_navigation.yaml \
        ${TF_REMAPS} \
        ${SIM_TIME_ARG} \
-       -r /cmd_vel:=/cmd_vel_raw"
+       -r /cmd_vel:=/cmd_vel_predictive_in"
 
   start_process "collision_monitor" \
     "exec ros2 run nav2_collision_monitor collision_monitor \
@@ -780,6 +830,15 @@ verify_nav2_ready() {
   # A dead EKF used to pass verify and only surface as a mid-run
   # INFRA_ERROR when map->base_link went stale.
   for name in "${LOCALIZATION_PROCESSES[@]}"; do
+    if process_healthy "${name}"; then
+      printf '[OK] %-19s RUNNING\n' "${name}"
+    else
+      printf '[ERROR] %-16s not healthy\n' "${name}"
+      failed=1
+    fi
+  done
+
+  for name in "${PREDICTIVE_SAFETY_PROCESSES[@]}"; do
     if process_healthy "${name}"; then
       printf '[OK] %-19s RUNNING\n' "${name}"
     else

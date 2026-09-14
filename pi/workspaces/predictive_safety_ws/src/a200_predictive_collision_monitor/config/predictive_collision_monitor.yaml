@@ -1,0 +1,33 @@
+a200_predictive_collision_monitor:
+  ros__parameters:
+    use_sim_time: true
+
+    # Shadow Mode v0.1: the node only observes and publishes state.
+    # It has no velocity output publisher and cannot move or stop the robot.
+    cmd_vel_topic: /cmd_vel_raw
+    tracked_obstacles_topic: /tracked_obstacles
+    state_topic: /predictive_collision_state
+
+    base_frame: base_link
+    tracked_obstacle_timeout_sec: 0.75
+    future_stamp_tolerance_sec: 0.10
+    transform_timeout_sec: 0.10
+
+    # Physical A200 footprint: 0.988 m x 0.670 m.
+    footprint_half_length_m: 0.494
+    footprint_half_width_m: 0.335
+
+    # The tracked obstacle radius is expanded by the fixed safety margin and
+    # the time-growing covariance margin before collision testing.
+    base_safety_margin_m: 0.20
+    minimum_obstacle_radius_m: 0.10
+    uncertainty_sigma_multiplier: 1.0
+    maximum_uncertainty_margin_m: 0.35
+
+    prediction_horizon_sec: 3.0
+    simulation_time_step_sec: 0.05
+    minimum_dynamic_speed_mps: 0.15
+
+    # These thresholds classify the shadow decision only. No command is changed.
+    slow_ttc_sec: 2.5
+    stop_ttc_sec: 1.0

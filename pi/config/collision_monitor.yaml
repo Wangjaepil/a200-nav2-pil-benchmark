@@ -86,7 +86,7 @@ collision_monitor:
         points: "[[0.70, 0.44], [0.70, -0.44], [-0.20, -0.44], [-0.20, 0.44]]"
 
         linear_min: 0.0
-        linear_max: 0.30
+        linear_max: 1.0
 
         theta_min: -0.8
         theta_max: 0.8

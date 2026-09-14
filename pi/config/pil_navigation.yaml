@@ -85,6 +85,11 @@ global_costmap:
           marking: true
           clearing: true
 
+          # Gazebo publishes a no-hit LaserScan beam as +inf. Nav2's default
+          # (false) drops that beam, so cells marked by a moving obstacle are
+          # never ray-trace-cleared and accumulate into a ghost trail.
+          inf_is_valid: true
+
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
 
