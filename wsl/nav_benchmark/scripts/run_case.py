@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from benchmark_dynamic import DynamicObstacleSpec, parse_dynamic_obstacles
+
 # ============================================================
 # 기본 경로
 # ============================================================
@@ -295,6 +297,147 @@ def obstacle_to_sdf(obs, index):
 
     """
 
+
+# ============================================================
+# S5 동적 장애물
+#
+# 이 함수들은 장애물을 "회피"하지 않는다. Case YAML의 정의를
+# Gazebo model로 변환하여 월드에 실제로 생성하는 역할만 담당한다.
+# 이동 명령과 결과 검증은 dynamic_obstacle_controller.py가 맡는다.
+# ============================================================
+
+def inertial_xml(spec: DynamicObstacleSpec):
+
+    mass = float(spec.mass_kg)
+
+    if spec.shape == "box":
+
+        sx, sy, sz = map(float, spec.raw["size"])
+
+        ixx = mass * (sy * sy + sz * sz) / 12.0
+        iyy = mass * (sx * sx + sz * sz) / 12.0
+        izz = mass * (sx * sx + sy * sy) / 12.0
+
+    elif spec.shape == "cylinder":
+
+        radius = float(spec.raw["radius"])
+        height = float(spec.raw["height"])
+
+        ixx = mass * (3.0 * radius * radius + height * height) / 12.0
+        iyy = ixx
+        izz = 0.5 * mass * radius * radius
+
+    else:
+
+        raise ValueError(
+            f"동적 장애물은 box/cylinder만 지원합니다: {spec.shape}"
+        )
+
+    return f"""
+        <inertial>
+          <mass>{f(mass)}</mass>
+          <inertia>
+            <ixx>{f(ixx)}</ixx>
+            <iyy>{f(iyy)}</iyy>
+            <izz>{f(izz)}</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+    """
+
+
+def dynamic_obstacle_to_sdf(spec: DynamicObstacleSpec, index):
+
+    obs = spec.raw
+    geometry = geometry_xml(obs)
+    inertia = inertial_xml(spec)
+    z = calculate_z(obs)
+    prefix = spec.topic_prefix
+
+    return f"""
+
+    <!-- S5 dynamic obstacle {index}: {spec.name} -->
+    <model name="{spec.name}">
+
+      <static>false</static>
+      <self_collide>false</self_collide>
+      <allow_auto_disable>false</allow_auto_disable>
+
+      <pose>
+        {f(spec.pose.x)}
+        {f(spec.pose.y)}
+        {f(z)}
+        0 0 {f(spec.pose.yaw)}
+      </pose>
+
+      <link name="link">
+
+        <gravity>false</gravity>
+
+        {inertia}
+
+        <collision name="collision">
+          <geometry>
+            {geometry}
+          </geometry>
+        </collision>
+
+        <visual name="visual">
+          <geometry>
+            {geometry}
+          </geometry>
+          <material>
+            <ambient>0.95 0.28 0.05 1</ambient>
+            <diffuse>0.95 0.28 0.05 1</diffuse>
+          </material>
+        </visual>
+
+        <sensor name="contact_sensor" type="contact">
+          <always_on>true</always_on>
+          <update_rate>100</update_rate>
+          <topic>{prefix}/contacts_raw</topic>
+          <contact>
+            <collision>collision</collision>
+          </contact>
+        </sensor>
+
+      </link>
+
+      <plugin
+        filename="gz-sim-velocity-control-system"
+        name="gz::sim::systems::VelocityControl">
+        <topic>{prefix}/cmd_vel</topic>
+        <initial_linear>0 0 0</initial_linear>
+        <initial_angular>0 0 0</initial_angular>
+      </plugin>
+
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>world</odom_frame>
+        <robot_base_frame>{spec.name}/link</robot_base_frame>
+        <odom_publish_frequency>20</odom_publish_frequency>
+        <odom_topic>{prefix}/odometry</odom_topic>
+        <tf_topic>{prefix}/pose</tf_topic>
+        <dimensions>3</dimensions>
+      </plugin>
+
+      <plugin
+        filename="gz-sim-touchplugin-system"
+        name="gz::sim::systems::TouchPlugin">
+        <target>a200_0000</target>
+        <collision>collision</collision>
+        <namespace>benchmark/dynamic/{spec.name}</namespace>
+        <time>0.001</time>
+        <enabled>true</enabled>
+      </plugin>
+
+    </model>
+
+    """
+
 # ============================================================
 # 실제 Case World 생성
 #
@@ -330,6 +473,12 @@ def build_case_world(data):
     ):
 
         obstacle_xml += obstacle_to_sdf(obs, index)
+
+    dynamic_obstacles = parse_dynamic_obstacles(data)
+
+    for index, spec in enumerate(dynamic_obstacles, start=1):
+
+        obstacle_xml += dynamic_obstacle_to_sdf(spec, index)
 
     # </world> 직전에 장애물 삽입
     world_text = world_text.replace("</world>", obstacle_xml + "\n</world>", 1)
@@ -503,6 +652,11 @@ def main():
     print(
         f"OBSTACLES : "
         f"{len(data.get('obstacles', []))}"
+    )
+
+    print(
+        f"DYNAMIC OBSTACLES : "
+        f"{len(parse_dynamic_obstacles(data))}"
     )
 
     print("==============================")

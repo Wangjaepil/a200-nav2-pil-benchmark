@@ -1,13 +1,13 @@
 scenario: S5
 case_id: S5_11
-description: late-route crossing
+description: cross route then reverse back
 robot:
-  x: 24.658743
-  y: -32.386665
+  x: 24.917562
+  y: -33.352591
   yaw: 1.832596
 goal:
-  x: 15.341257
-  y: 2.386665
+  x: 15.082438
+  y: 3.352591
   yaw: 1.832596
 obstacles: []
 dynamic_obstacles:
@@ -15,23 +15,29 @@ dynamic_obstacles:
   shape: cylinder
   mass: 40.0
   pose:
-    x: 15.549308
-    y: -9.980902
-    yaw: 0.261799
+    x: 22.897777
+    y: -14.223543
+    yaw: 3.403392
   motion:
-    end:
-      x: 21.344863
-      y: -8.427988
-      yaw: 0.261799
-    speed_mps: 0.6
+    speed_mps: 0.8
     trigger:
       type: robot_distance
-      distance_m: 3.75
+      distance_m: 5.0
+    waypoints:
+    - x: 17.295408
+      y: -15.724693
+      yaw: 3.403392
+      speed_mps: 0.8
+      hold_sec: 0.5
+    - x: 22.318222
+      y: -14.378834
+      yaw: 0.261799
+      speed_mps: 0.9
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 4.8
+    min_travel_m: 6.6
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35

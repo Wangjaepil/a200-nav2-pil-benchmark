@@ -9,7 +9,10 @@ import math
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import yaml
 
 from benchmark_common import (
     Pose2D,
@@ -24,6 +27,7 @@ from benchmark_path_tools import (
     is_canonical_global_plan,
     load_plans,
 )
+from benchmark_dynamic import parse_dynamic_obstacles
 
 
 class CommonTests(unittest.TestCase):
@@ -173,6 +177,59 @@ class RunnerAndGuiTests(unittest.TestCase):
         self.assertIn("--map-start-y 2.000000000", joined)
         self.assertIn("--map-start-yaw 0.500000000", joined)
         self.assertIn("use_sim_time:=true", joined)
+
+    def test_all_generated_s5_worlds_contain_dynamic_models(self):
+        run_case_module = _load_uploaded_module(
+            "run_case_sdf_tested",
+            ("run_case.py", "run_case(1).py"),
+        )
+        benchmark_root = Path(__file__).resolve().parent.parent
+        case_paths = sorted((benchmark_root / "cases" / "S5").glob("S5_*.yaml"))
+        self.assertEqual(len(case_paths), 20)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_case_module.BASE_WORLD = (
+                benchmark_root / "worlds" / "benchmark.sdf"
+            )
+            run_case_module.ACTIVE_DIR = Path(temp_dir)
+
+            for case_path in case_paths:
+                with self.subTest(case=case_path.stem):
+                    case = yaml.safe_load(
+                        case_path.read_text(encoding="utf-8")
+                    )
+                    specs = parse_dynamic_obstacles(case)
+                    self.assertGreaterEqual(len(specs), 1)
+                    generated = run_case_module.build_case_world(case)
+                    root = ET.parse(generated).getroot()
+                    world = root.find("world")
+                    self.assertIsNotNone(world)
+                    models = {
+                        model.get("name"): model
+                        for model in world.findall("./model")
+                    }
+
+                    for spec in specs:
+                        model = models[spec.name]
+                        self.assertEqual(model.findtext("static"), "false")
+                        self.assertIsNotNone(
+                            model.find("./link/visual/geometry")
+                        )
+                        self.assertIsNotNone(
+                            model.find("./link/collision/geometry")
+                        )
+                        plugins = {
+                            plugin.get("name")
+                            for plugin in model.findall("./plugin")
+                        }
+                        self.assertEqual(
+                            plugins,
+                            {
+                                "gz::sim::systems::VelocityControl",
+                                "gz::sim::systems::OdometryPublisher",
+                                "gz::sim::systems::TouchPlugin",
+                            },
+                        )
 
     def test_latest_diagnosed_run_is_visible_without_summary(self):
         with tempfile.TemporaryDirectory() as temp_dir:

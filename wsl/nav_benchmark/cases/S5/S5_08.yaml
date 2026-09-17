@@ -1,40 +1,47 @@
 scenario: S5
 case_id: S5_08
-description: large slow obstacle
+description: slow same-direction blocker ahead
 robot:
-  x: 13.856406
-  y: 43.0
+  x: 16.454483
+  y: 44.5
   yaw: -2.617994
 goal:
-  x: -13.856406
-  y: 27.0
+  x: -16.454483
+  y: 25.5
   yaw: -2.617994
 obstacles: []
 dynamic_obstacles:
 - name: s5_08_dyn_01
-  shape: cylinder
+  shape: box
   mass: 65.0
   pose:
-    x: 1.4
-    y: 32.575129
-    yaw: 2.094395
+    x: 0.915064
+    y: 38.415064
+    yaw: -1.587617
   motion:
-    end:
-      x: -1.4
-      y: 37.424871
-      yaw: 2.094395
-    speed_mps: 0.4
+    speed_mps: 0.6
     trigger:
       type: robot_distance
-      distance_m: 5.25
+      distance_m: 6.0
+    waypoints:
+    - x: 0.866025
+      y: 35.5
+      yaw: -1.587617
+      speed_mps: 0.7
+    - x: -2.424871
+      y: 33.6
+      yaw: -2.617994
+      speed_mps: 0.48
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 4.48
+    min_travel_m: 4.029
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
-  radius: 0.5
-  height: 1.4
+  size:
+  - 0.9
+  - 0.65
+  - 0.85

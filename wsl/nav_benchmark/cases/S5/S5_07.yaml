@@ -1,40 +1,45 @@
 scenario: S5
 case_id: S5_07
-description: small agile obstacle
+description: head-on approach along nominal route
 robot:
-  x: -47.990381
-  y: 42.5
+  x: -51.454483
+  y: 44.5
   yaw: -0.523599
 goal:
-  x: -22.009619
-  y: 27.5
+  x: -18.545517
+  y: 25.5
   yaw: -0.523599
 obstacles: []
 dynamic_obstacles:
 - name: s5_07_dyn_01
   shape: cylinder
-  mass: 25.0
+  mass: 40.0
   pose:
-    x: -36.0
-    y: 33.267949
-    yaw: 1.047198
+    x: -28.120835
+    y: 33.915064
+    yaw: -2.634815
   motion:
-    end:
-      x: -33.8
-      y: 37.078461
-      yaw: 1.047198
-    speed_mps: 0.75
+    speed_mps: 0.8
     trigger:
       type: robot_distance
-      distance_m: 2.5
+      distance_m: 6.5
+    waypoints:
+    - x: -30.669873
+      y: 32.5
+      yaw: -2.634815
+      speed_mps: 0.85
+    - x: -35.0
+      y: 35.0
+      yaw: 2.617994
+      speed_mps: 0.75
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 3.52
+    min_travel_m: 4.749
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
-  radius: 0.25
+  radius: 0.3
   height: 1.4

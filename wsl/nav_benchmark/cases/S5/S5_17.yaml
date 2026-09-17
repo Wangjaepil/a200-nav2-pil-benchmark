@@ -1,13 +1,13 @@
 scenario: S5
 case_id: S5_17
-description: short-notice crossing
+description: two sequential crossings different speeds
 robot:
-  x: -4.095389
-  y: -5.130302
+  x: -8.793852
+  y: -6.840403
   yaw: 0.349066
 goal:
-  x: 24.095389
-  y: 5.130302
+  x: 28.793852
+  y: 6.840403
   yaw: 0.349066
 obstacles: []
 dynamic_obstacles:
@@ -15,26 +15,53 @@ dynamic_obstacles:
   shape: cylinder
   mass: 40.0
   pose:
-    x: 10.547232
-    y: -1.503508
+    x: 6.224991
+    y: -4.247271
     yaw: 1.919862
   motion:
-    end:
-      x: 9.179152
-      y: 2.255262
-      yaw: 1.919862
-    speed_mps: 0.65
+    speed_mps: 0.45
     trigger:
       type: robot_distance
-      distance_m: 2.5
+      distance_m: 5.5
+    end:
+      x: 4.378083
+      y: 0.827069
+      yaw: 1.919862
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 3.2
+    min_travel_m: 3.24
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
-  radius: 0.35
+  radius: 0.25
+  height: 1.4
+- name: s5_17_dyn_02
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: 13.603999
+    y: 4.717117
+    yaw: -1.22173
+  motion:
+    speed_mps: 0.85
+    trigger:
+      type: robot_distance
+      distance_m: 3.0
+    end:
+      x: 15.792928
+      y: -1.296916
+      yaw: -1.22173
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.84
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.38
   height: 1.4

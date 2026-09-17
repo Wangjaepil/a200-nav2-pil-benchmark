@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Simulation-time controller and ground-truth recorder for S5 obstacles.
 
-The controller never chooses a synthetic path.  It waits until Nav2 publishes
-an actual global ``/plan`` intersecting each obstacle's configured motion
-segment, freezes that pre-stimulus plan, and only then applies the case trigger.
+The controller never chooses a synthetic robot path. It waits until Nav2
+publishes an actual global ``/plan`` intersecting each obstacle's configured
+motion polyline, freezes that pre-stimulus plan, and only then applies the case
+trigger. Dynamic obstacle motion itself is deterministic and may use multiple
+waypoints with optional stationary holds.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from rclpy.qos import (
 )
 from rclpy.time import Time
 from std_msgs.msg import Bool, String
+from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener
 
 from benchmark_common import (
@@ -88,6 +91,8 @@ class ObstacleRuntime:
     first_temporal_interaction_sim_sec: float | None = None
     last_cmd_body_x: float = 0.0
     last_cmd_body_y: float = 0.0
+    current_waypoint_index: int = 0
+    hold_until_sim_sec: float | None = None
 
 
 class DynamicObstacleController(Node):
@@ -117,6 +122,7 @@ class DynamicObstacleController(Node):
         self.collision_detected = False
         self.files_closed = False
         self.last_summary_wall = 0.0
+        self.stop_requested = False
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -150,6 +156,9 @@ class DynamicObstacleController(Node):
         self.status_publisher = self.create_publisher(
             String, "/benchmark/dynamic_status", self.status_qos
         )
+        self.stop_service = self.create_service(
+            Trigger, "/benchmark/dynamic/stop", self.stop_service_cb
+        )
 
         self.create_subscription(PoseStamped, "/far_goal_pose", self.goal_cb, 10)
         self.create_subscription(NavPath, "/plan", self.plan_cb, 10)
@@ -180,6 +189,30 @@ class DynamicObstacleController(Node):
             f"obstacles={len(self.runtimes)}",
             flush=True,
         )
+
+    def stop_service_cb(self, _request, response):
+        # Graceful result freeze requested by benchmark_runner after navigation
+        # finishes.  Stop every obstacle first, persist the final evidence, then
+        # let the main loop exit cleanly after this service response is sent.
+        if not self.stop_requested:
+            self.stop_requested = True
+            for runtime in self.runtimes.values():
+                self.publish_zero(runtime)
+            self.event("", "CONTROLLER_STOP_REQUESTED", f"case={self.case_id}")
+            self.publish_status()
+            self.write_summary()
+            self.trajectory_file.flush()
+            # benchmark_runner waits for this exact marker after the stop
+            # service returns. Emit it before the node exits so result
+            # collection can distinguish a graceful freeze from a crash.
+            print(
+                f"DYNAMIC_CONTROLLER_STOPPED case={self.case_id}",
+                flush=True,
+            )
+
+        response.success = True
+        response.message = f"dynamic controller stop accepted: {self.case_id}"
+        return response
 
     def now_sim_ns(self) -> int:
         return self.get_clock().now().nanoseconds
@@ -235,13 +268,20 @@ class DynamicObstacleController(Node):
         for runtime in self.runtimes.values():
             if runtime.frozen_plan or runtime.command_started:
                 continue
-            start_map = self.world_to_map(runtime.spec.pose)
-            end_map = self.world_to_map(runtime.spec.end)
-            conflict = segment_polyline_conflict(
-                (start_map.x, start_map.y),
-                (end_map.x, end_map.y),
-                points,
-            )
+            motion_map = [self.world_to_map(pose) for pose in runtime.spec.motion_points]
+            conflict = None
+            for start_map, end_map in zip(motion_map, motion_map[1:]):
+                candidate = segment_polyline_conflict(
+                    (start_map.x, start_map.y),
+                    (end_map.x, end_map.y),
+                    points,
+                )
+                if candidate is None:
+                    continue
+                if conflict is None or candidate.distance_m < conflict.distance_m:
+                    conflict = candidate
+                    if conflict.distance_m <= 1e-9:
+                        break
             if conflict is None:
                 continue
             if conflict.distance_m > runtime.spec.path_intersection_tolerance_m:
@@ -304,16 +344,11 @@ class DynamicObstacleController(Node):
             runtime.last_motion_xy = current_xy
 
         if runtime.command_started:
-            start = runtime.spec.pose
-            end = runtime.spec.end
-            dx = end.x - start.x
-            dy = end.y - start.y
-            denom = dx * dx + dy * dy
-            if denom > 0.0:
-                progress = (
-                    (pose.x - start.x) * dx + (pose.y - start.y) * dy
-                ) / denom
-                runtime.max_progress = max(runtime.max_progress, progress)
+            if runtime.spec.path_length_m > 0.0:
+                runtime.max_progress = max(
+                    runtime.max_progress,
+                    min(1.0, runtime.observed_travel_m / runtime.spec.path_length_m),
+                )
 
             if runtime.frozen_plan:
                 map_pose = self.world_to_map(pose)
@@ -398,7 +433,7 @@ class DynamicObstacleController(Node):
         self.event("", "CONTROLLER_READY", "odom/cmd/touch bridges verified")
         self.publish_status()
         self.write_summary()
-        print("DYNAMIC_CONTROLLER_READY", flush=True)
+        print(f"DYNAMIC_CONTROLLER_READY case={self.case_id}", flush=True)
 
     def trigger_satisfied(self, runtime: ObstacleRuntime) -> bool:
         trigger = runtime.spec.trigger
@@ -415,6 +450,8 @@ class DynamicObstacleController(Node):
     def start_motion(self, runtime: ObstacleRuntime) -> None:
         runtime.command_started = True
         runtime.state = "MOVING"
+        runtime.current_waypoint_index = 0
+        runtime.hold_until_sim_sec = None
         runtime.command_start_sim_sec = self.elapsed_sim_sec()
         runtime.plan_count_at_start = self.plan_message_count
         if runtime.pose_world is not None:
@@ -422,7 +459,8 @@ class DynamicObstacleController(Node):
         self.event(
             runtime.spec.name,
             "MOTION_START",
-            f"speed={runtime.spec.speed_mps:.3f}; "
+            f"waypoints={len(runtime.spec.waypoints)}; "
+            f"path_length={runtime.spec.path_length_m:.3f}; "
             f"frozen_plan_id={runtime.frozen_plan_id}",
         )
 
@@ -431,6 +469,21 @@ class DynamicObstacleController(Node):
         runtime.last_cmd_body_y = 0.0
         runtime.cmd_publisher.publish(Twist())
 
+    def _complete_motion(self, runtime: ObstacleRuntime) -> None:
+        runtime.motion_completed = True
+        runtime.state = "COMPLETED"
+        runtime.command_end_sim_sec = self.elapsed_sim_sec()
+        runtime.max_progress = max(runtime.max_progress, 1.0)
+        self.publish_zero(runtime)
+        self.event(
+            runtime.spec.name,
+            "MOTION_COMPLETE",
+            f"travel={runtime.observed_travel_m:.3f}; "
+            f"waypoints={len(runtime.spec.waypoints)}",
+        )
+        self.publish_status()
+        self.write_summary()
+
     def publish_motion(self, runtime: ObstacleRuntime) -> None:
         pose = runtime.pose_world
         if pose is None:
@@ -438,49 +491,78 @@ class DynamicObstacleController(Node):
             return
 
         spec = runtime.spec
-        distance_to_end = math.hypot(spec.end.x - pose.x, spec.end.y - pose.y)
-        if distance_to_end <= spec.end_tolerance_m or runtime.max_progress >= 0.995:
-            runtime.motion_completed = True
-            runtime.state = "COMPLETED"
-            runtime.command_end_sim_sec = self.elapsed_sim_sec()
-            self.publish_zero(runtime)
-            self.event(
-                spec.name,
-                "MOTION_COMPLETE",
-                f"travel={runtime.observed_travel_m:.3f}; "
-                f"progress={runtime.max_progress:.3f}",
+        elapsed = self.elapsed_sim_sec()
+
+        if runtime.command_start_sim_sec is not None:
+            timeout = (
+                spec.estimated_motion_duration_sec * MOTION_TIMEOUT_FACTOR
+                + MOTION_TIMEOUT_PADDING_SEC
             )
-            self.publish_status()
-            self.write_summary()
+            if elapsed - runtime.command_start_sim_sec > timeout:
+                runtime.state = "MOTION_FAILED"
+                runtime.command_end_sim_sec = elapsed
+                self.publish_zero(runtime)
+                self.event(
+                    spec.name,
+                    "MOTION_TIMEOUT",
+                    f"travel={runtime.observed_travel_m:.3f}; "
+                    f"waypoint={runtime.current_waypoint_index + 1}/"
+                    f"{len(spec.waypoints)}",
+                )
+                self.publish_status()
+                self.write_summary()
+                return
+
+        if runtime.state == "HOLDING":
+            if (
+                runtime.hold_until_sim_sec is not None
+                and elapsed < runtime.hold_until_sim_sec
+            ):
+                self.publish_zero(runtime)
+                return
+            runtime.state = "MOVING"
+            runtime.hold_until_sim_sec = None
+            runtime.current_waypoint_index += 1
+            if runtime.current_waypoint_index >= len(spec.waypoints):
+                self._complete_motion(runtime)
+                return
+
+        if runtime.current_waypoint_index >= len(spec.waypoints):
+            self._complete_motion(runtime)
             return
 
-        expected_sec = spec.segment_length_m / spec.speed_mps
-        if (
-            runtime.command_start_sim_sec is not None
-            and self.elapsed_sim_sec() - runtime.command_start_sim_sec
-            > expected_sec * MOTION_TIMEOUT_FACTOR + MOTION_TIMEOUT_PADDING_SEC
-        ):
-            runtime.state = "MOTION_FAILED"
-            runtime.command_end_sim_sec = self.elapsed_sim_sec()
-            self.publish_zero(runtime)
+        target = spec.waypoints[runtime.current_waypoint_index]
+        distance = math.hypot(target.pose.x - pose.x, target.pose.y - pose.y)
+
+        if distance <= spec.end_tolerance_m:
             self.event(
                 spec.name,
-                "MOTION_TIMEOUT",
-                f"travel={runtime.observed_travel_m:.3f}; "
-                f"progress={runtime.max_progress:.3f}",
+                "WAYPOINT_REACHED",
+                f"index={runtime.current_waypoint_index + 1}/"
+                f"{len(spec.waypoints)}; hold={target.hold_sec:.2f}",
             )
-            self.publish_status()
-            self.write_summary()
+            if target.hold_sec > 0.0:
+                runtime.state = "HOLDING"
+                runtime.hold_until_sim_sec = elapsed + target.hold_sec
+                self.publish_zero(runtime)
+                return
+
+            runtime.current_waypoint_index += 1
+            if runtime.current_waypoint_index >= len(spec.waypoints):
+                self._complete_motion(runtime)
+                return
+            target = spec.waypoints[runtime.current_waypoint_index]
+            distance = math.hypot(target.pose.x - pose.x, target.pose.y - pose.y)
+
+        if distance <= 1e-9:
+            self.publish_zero(runtime)
             return
 
-        world_dx = spec.end.x - spec.pose.x
-        world_dy = spec.end.y - spec.pose.y
-        length = spec.segment_length_m
-        world_vx = spec.speed_mps * world_dx / length
-        world_vy = spec.speed_mps * world_dy / length
+        world_vx = target.speed_mps * (target.pose.x - pose.x) / distance
+        world_vy = target.speed_mps * (target.pose.y - pose.y) / distance
 
         # VelocityControl consumes body-fixed velocity. Rotate the desired
-        # world-frame segment velocity into the obstacle's observed body frame.
+        # world-frame waypoint velocity into the obstacle's observed body frame.
         cosine = math.cos(pose.yaw)
         sine = math.sin(pose.yaw)
         body_vx = cosine * world_vx + sine * world_vy
@@ -496,7 +578,7 @@ class DynamicObstacleController(Node):
     def update_interaction_metric(self, runtime: ObstacleRuntime) -> None:
         if not runtime.command_started or runtime.pose_world is None:
             return
-        if runtime.state not in {"MOVING", "COLLIDED"}:
+        if runtime.state not in {"MOVING", "HOLDING", "COLLIDED"}:
             validation = runtime.spec.raw.get("validation") or {}
             if not bool(validation.get("allow_interaction_after_motion", False)):
                 return
@@ -558,6 +640,10 @@ class DynamicObstacleController(Node):
         ])
 
     def timer_cb(self) -> None:
+        if self.stop_requested:
+            for runtime in self.runtimes.values():
+                self.publish_zero(runtime)
+            return
         if self.fatal_reason is not None:
             return
 
@@ -586,7 +672,7 @@ class DynamicObstacleController(Node):
             elif runtime.state == "ARMED" and self.trigger_satisfied(runtime):
                 self.start_motion(runtime)
                 self.publish_motion(runtime)
-            elif runtime.state == "MOVING":
+            elif runtime.state in {"MOVING", "HOLDING"}:
                 self.publish_motion(runtime)
             else:
                 self.publish_zero(runtime)
@@ -663,7 +749,12 @@ class DynamicObstacleController(Node):
             "state": runtime.state,
             "shape": runtime.spec.shape,
             "speed_mps": runtime.spec.speed_mps,
+            "motion_waypoint_count": len(runtime.spec.waypoints),
             "configured_segment_length_m": round(runtime.spec.segment_length_m, 4),
+            "configured_path_length_m": round(runtime.spec.path_length_m, 4),
+            "expected_motion_duration_sec": round(
+                runtime.spec.estimated_motion_duration_sec, 4
+            ),
             "initial_pose_error_m": (
                 round(runtime.initial_pose_error_m, 4)
                 if runtime.initial_pose_error_m is not None else None
@@ -818,7 +909,11 @@ def main() -> int:
     )
     exit_code = 0
     try:
-        while rclpy.ok() and node.fatal_reason is None:
+        while (
+            rclpy.ok()
+            and node.fatal_reason is None
+            and not node.stop_requested
+        ):
             rclpy.spin_once(node, timeout_sec=0.1)
         if node.fatal_reason is not None:
             exit_code = 2

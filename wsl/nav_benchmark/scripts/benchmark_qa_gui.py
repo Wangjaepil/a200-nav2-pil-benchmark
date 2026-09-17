@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nav Benchmark QA GUI - benchmark suite 2.0
+Nav Benchmark QA GUI - benchmark suite 2.1
 =========================
 
 Thin GUI wrapper around the already-validated benchmark_runner.py.
@@ -992,9 +992,37 @@ class BenchmarkQAGui(tk.Tk):
         )
         for run_dir in runs:
             summary = self._read_yaml_file(run_dir / "summary.yaml")
+            status = self._read_yaml_file(run_dir / "runner_status.yaml")
+            # A controller/bridge failure can happen after benchmark_logger
+            # has already written a provisional summary.  The diagnostic
+            # runner status is the authoritative result in that situation;
+            # otherwise the GUI would keep displaying
+            # PENDING_DYNAMIC_VALIDATION forever.
+            if (
+                status is not None
+                and status.get("runner_result") == "INFRA_ERROR"
+            ):
+                payload = dict(status)
+                if summary is not None:
+                    for key in ("case_id", "run_id", "nav2_result"):
+                        if key in summary:
+                            payload.setdefault(key, summary[key])
+                payload.setdefault(
+                    "benchmark_result",
+                    payload.get("runner_result", "INFRA_ERROR"),
+                )
+                payload.setdefault("nav2_result", "-")
+                payload.setdefault(
+                    "benchmark_result_reason",
+                    payload.get(
+                        "failure_reason",
+                        "Runner did not produce a completed benchmark result",
+                    ),
+                )
+                payload.setdefault("run_id", run_dir.name)
+                return run_dir, payload
             if summary is not None:
                 return run_dir, summary
-            status = self._read_yaml_file(run_dir / "runner_status.yaml")
             if status is not None:
                 payload = dict(status)
                 payload.setdefault(

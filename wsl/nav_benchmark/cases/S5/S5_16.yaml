@@ -1,40 +1,47 @@
 scenario: S5
 case_id: S5_16
-description: fast diagonal emergence
+description: wide cart enters route then blocks ahead
 robot:
-  x: 2.020815
-  y: 12.020815
+  x: 4.142136
+  y: 14.142136
   yaw: -2.356194
 goal:
-  x: -22.020815
-  y: -12.020815
+  x: -24.142136
+  y: -14.142136
   yaw: -2.356194
 obstacles: []
 dynamic_obstacles:
 - name: s5_16_dyn_01
-  shape: cylinder
-  mass: 40.0
+  shape: box
+  mass: 100.0
   pose:
-    x: -10.707107
-    y: 3.535534
-    yaw: -1.373401
+    x: -10.212132
+    y: 3.747666
+    yaw: -0.785398
   motion:
-    end:
-      x: -9.292893
-      y: -3.535534
-      yaw: -1.373401
-    speed_mps: 0.95
+    speed_mps: 0.65
     trigger:
       type: robot_distance
-      distance_m: 2.846
+      distance_m: 6.0
+    waypoints:
+    - x: -8.232233
+      y: 1.767767
+      yaw: -0.785398
+      speed_mps: 0.7
+    - x: -11.272792
+      y: -1.272792
+      yaw: -2.356194
+      speed_mps: 0.55
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 5.769
+    min_travel_m: 4.26
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
-  radius: 0.35
-  height: 1.4
+  size:
+  - 1.45
+  - 0.8
+  - 1.05

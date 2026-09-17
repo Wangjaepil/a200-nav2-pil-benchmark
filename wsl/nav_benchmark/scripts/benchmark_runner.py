@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PC/WSL benchmark orchestrator v2.0 for the Gazebo <-> Raspberry Pi Nav2 benchmark.
+PC/WSL benchmark orchestrator v2.1 for the Gazebo <-> Raspberry Pi Nav2 benchmark.
 
 What this runner manages automatically:
   PC:  one local Zenoh router linked to the Pi router
@@ -42,12 +42,17 @@ from benchmark_runner_support import (
     assert_platform_odom_stationary,
     assert_pre_goal_stationary,
     bridge_command,
+    case_has_dynamic_obstacles,
     cleanup_pc_benchmark_orphans,
     copy_case_logs,
     copy_pi_logs,
     current_run_dirs,
+    dynamic_controller_command,
+    finish_dynamic_controller,
+    finalize_dynamic_result,
     force_platform_zero_burst,
     load_summary,
+    log_tail,
     logger_command,
     manager,
     preflight,
@@ -84,10 +89,12 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
     run_case_proc = None
     bridge_proc = None
     logger_proc = None
+    dynamic_controller_proc = None
     sender_proc = None
     pre_goal_zero_hold_proc = None
     run_dir = None
     map_start_pose = None
+    dynamic_case = False
     pi_logs_snapshotted = False
     stage = "INIT"
     started_wall = time.monotonic()
@@ -98,6 +105,10 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
         print("#" * 72)
         print(f"# CASE {case_id} START")
         print("#" * 72)
+
+        dynamic_case = case_has_dynamic_obstacles(case_id)
+        if dynamic_case:
+            print("[CASE] Dynamic obstacle stimulus enabled")
 
         stage = "CLEANUP_PREVIOUS"
         print_stage(1, f"{case_id}: CLEAN PREVIOUS CASE")
@@ -140,7 +151,7 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
         print_stage(3, f"{case_id}: START SENSOR BRIDGE")
         bridge_proc = start_pc_process(
             "ros_gz_bridge",
-            bridge_command(),
+            bridge_command(case_id),
             case_log_dir / "bridge.log",
         )
 
@@ -247,6 +258,29 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
         )
         print(f"[READY] Logger subscribed and waiting: {run_dir}")
 
+        if dynamic_case:
+            stage = "DYNAMIC_CONTROLLER_START"
+            print_stage(10, f"{case_id}: START DYNAMIC OBSTACLE CONTROLLER")
+            assert map_start_pose is not None
+            dynamic_log = case_log_dir / "dynamic_obstacle_controller.log"
+            dynamic_controller_proc = start_pc_process(
+                "dynamic_obstacle_controller",
+                dynamic_controller_command(
+                    case_id,
+                    run_dir,
+                    map_start_pose,
+                ),
+                dynamic_log,
+            )
+            wait_log_marker(
+                dynamic_controller_proc,
+                dynamic_log,
+                f"DYNAMIC_CONTROLLER_READY case={case_id}",
+                timeout=40,
+                stage="DYNAMIC_CONTROLLER_READY",
+            )
+            print("[READY] Dynamic obstacle bridge + initial pose verified")
+
         # Snapshot while the setup hold is still active. Slow SSH or Wi-Fi must
         # never create an unguarded delay immediately before goal publication.
         snapshot_configs(case_id, run_dir)
@@ -318,12 +352,38 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
             logger_proc,
             timeout_sec=660,
             diagnostic_log=logger_log,
+            watched_processes=(
+                ((
+                    "dynamic_obstacle_controller",
+                    dynamic_controller_proc,
+                    dynamic_log,
+                ),)
+                if dynamic_case and dynamic_controller_proc is not None
+                else ()
+            ),
         )
         logger_proc = None
 
         stage = "RESULT_COLLECTION"
         print_stage(13, f"{case_id}: COLLECT RESULT")
-        summary = load_summary(run_dir)
+        if dynamic_case:
+            assert dynamic_controller_proc is not None
+            if dynamic_controller_proc.poll() is not None:
+                raise InfraError(
+                    "DYNAMIC_CONTROLLER_RUNTIME",
+                    "dynamic_obstacle_controller exited before result "
+                    f"collection (rc={dynamic_controller_proc.returncode}).\n"
+                    + log_tail(dynamic_log),
+                )
+            finish_dynamic_controller(
+                case_id,
+                dynamic_controller_proc,
+                dynamic_log,
+            )
+            dynamic_controller_proc = None
+            summary = finalize_dynamic_result(run_dir)
+        else:
+            summary = load_summary(run_dir)
 
         # Capture Pi logs while the processes still exist and before cleanup
         # introduces SIGINT/shutdown messages.
@@ -466,6 +526,11 @@ def run_one_case(case_id: str, batch_dir: Path) -> dict:
             "send_case_goal",
             sender_proc,
             grace=2.0,
+        )
+        stop_pc_process(
+            "dynamic_obstacle_controller",
+            dynamic_controller_proc,
+            grace=5.0,
         )
         stop_pc_process(
             "benchmark_logger",

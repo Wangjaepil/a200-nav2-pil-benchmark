@@ -26,7 +26,16 @@ try:
 except ImportError:
     sys.exit("PyYAML is required: sudo apt install python3-yaml")
 
-from benchmark_common import Pose2D, SUITE_VERSION, pose_error
+from benchmark_common import (
+    Pose2D,
+    SUITE_VERSION,
+    load_case_spec,
+    pose_error,
+)
+from benchmark_dynamic import (
+    dynamic_bridge_arguments,
+    parse_dynamic_obstacles,
+)
 
 
 HOME = Path.home()
@@ -39,6 +48,9 @@ RUNNER_LOG_ROOT = ROOT / "runner_logs"
 RUN_CASE = SCRIPTS / "run_case.py"
 LOGGER = SCRIPTS / "benchmark_logger.py"
 SEND_GOAL = SCRIPTS / "send_case_goal.py"
+DYNAMIC_DOMAIN = SCRIPTS / "benchmark_dynamic.py"
+DYNAMIC_CORE = SCRIPTS / "dynamic_motion_core.py"
+DYNAMIC_CONTROLLER = SCRIPTS / "dynamic_obstacle_controller.py"
 
 PI_USER = os.environ.get("NAV_BENCH_PI_USER", "tb-pil")
 PI_HOST = os.environ.get("NAV_BENCH_PI_HOST", "").strip()
@@ -143,6 +155,7 @@ PC_BENCHMARK_ORPHAN_SIGNATURES = (
     str(RUN_CASE),
     str(LOGGER),
     str(SEND_GOAL),
+    str(DYNAMIC_CONTROLLER),
     "ros2 run ros_gz_bridge parameter_bridge",
     "ros2 launch clearpath_gz gz_sim.launch.py",
     "ros2 launch clearpath_gz robot_spawn.launch.py",
@@ -733,26 +746,56 @@ def cleanup_pc_benchmark_orphans() -> None:
     print("[READY] Stale PC benchmark/Gazebo processes removed")
 
 
-def assert_platform_odom_stationary(label: str, sample_sec: float = 5.0) -> None:
-    """Check the robot's actual reported velocity, not only command topics."""
-    out = _probe_topic_once(PLATFORM_ODOM_TOPIC, probe_sec=sample_sec)
-    twist = _parse_odometry_twist(out)
+def assert_platform_odom_stationary(
+    label: str,
+    sample_sec: float = 12.0,
+    max_attempts: int = 2,
+) -> None:
+    """Check actual velocity, retrying only incomplete odometry probes."""
+    if sample_sec <= 0.0:
+        raise ValueError("sample_sec must be positive")
+    if max_attempts < 1:
+        raise ValueError("max_attempts must be at least 1")
+
+    out = ""
+    twist = None
+
+    for attempt in range(1, max_attempts + 1):
+        out = _probe_topic_once(
+            PLATFORM_ODOM_TOPIC,
+            probe_sec=sample_sec,
+        )
+        twist = _parse_odometry_twist(out)
+
+        if twist is not None:
+            break
+
+        if attempt < max_attempts:
+            print(
+                "[RETRY][PC] Platform odom probe returned no complete "
+                f"message ({attempt}/{max_attempts}); retrying"
+            )
+            time.sleep(0.5)
+
     if twist is None:
         raise InfraError(
             "PRE_GOAL_ODOM",
             f"Could not read platform odometry velocity at checkpoint: {label}\n"
             f"Last odom probe output:\n{out[-2500:]}",
         )
+
     vx, wz = twist
-    # Simulation odometry should be effectively zero before a goal.  Keep a
-    # small tolerance for numerical noise, not for actual setup motion.
+
     if abs(vx) > 0.02 or abs(wz) > 0.03:
         raise InfraError(
             "PRE_GOAL_ODOM",
             f"Robot is physically moving before goal at {label}: "
             f"odom vx={vx:.4f} m/s, wz={wz:.4f} rad/s\n"
-            + _topic_info_verbose("/a200_0000/platform/cmd_vel")[-5000:],
+            + _topic_info_verbose(
+                "/a200_0000/platform/cmd_vel"
+            )[-5000:],
         )
+
     print(
         f"[READY] Platform odom stationary ({label}): "
         f"vx={vx:.4f}, wz={wz:.4f}"
@@ -1400,11 +1443,134 @@ def load_summary(run_dir: Path) -> dict:
         return yaml.safe_load(f) or {}
 
 
+def finalize_dynamic_result(run_dir: Path) -> dict:
+    """Merge the controller's ground truth into the navigation summary.
+
+    The logger deliberately leaves dynamic cases in
+    ``PENDING_DYNAMIC_VALIDATION``.  This is the only function that turns that
+    intermediate value into COLLISION, INVALID_STIMULUS, or the underlying
+    navigation verdict.
+    """
+    summary = load_summary(run_dir)
+    dynamic_path = run_dir / "dynamic_summary.yaml"
+    if not dynamic_path.exists():
+        raise InfraError(
+            "DYNAMIC_RESULT",
+            f"dynamic_summary.yaml not found: {dynamic_path}",
+        )
+    try:
+        with dynamic_path.open("r", encoding="utf-8") as handle:
+            dynamic = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise InfraError(
+            "DYNAMIC_RESULT",
+            f"Could not read {dynamic_path}: {exc}",
+        ) from exc
+
+    if not isinstance(dynamic, dict):
+        raise InfraError(
+            "DYNAMIC_RESULT",
+            f"Dynamic summary root is not a mapping: {dynamic_path}",
+        )
+    if dynamic.get("case_id") != summary.get("case_id"):
+        raise InfraError(
+            "DYNAMIC_RESULT",
+            "Logger/controller case mismatch: "
+            f"logger={summary.get('case_id')!r}, "
+            f"controller={dynamic.get('case_id')!r}",
+        )
+
+    navigation_result = summary.get(
+        "navigation_benchmark_result",
+        summary.get("benchmark_result", "UNKNOWN"),
+    )
+    navigation_reason = summary.get(
+        "navigation_benchmark_result_reason",
+        summary.get("benchmark_result_reason", ""),
+    )
+    collision = bool(dynamic.get("collision_ground_truth", False))
+    stimulus_valid = bool(dynamic.get("stimulus_valid", False))
+    invalid_reasons = list(dynamic.get("invalid_reasons") or [])
+
+    if collision:
+        benchmark_result = "COLLISION"
+        benchmark_reason = (
+            "Gazebo TouchPlugin detected contact between an S5 dynamic "
+            "obstacle and a200_0000"
+        )
+    elif not stimulus_valid:
+        benchmark_result = "INVALID_STIMULUS"
+        benchmark_reason = (
+            "S5 dynamic stimulus was not completed and verified"
+            + (": " + "; ".join(map(str, invalid_reasons))
+               if invalid_reasons else "")
+        )
+    else:
+        benchmark_result = navigation_result
+        benchmark_reason = navigation_reason
+
+    obstacles = list(dynamic.get("obstacles") or [])
+    dynamic_controller = {
+        key: value
+        for key, value in dynamic.items()
+        if key not in {"obstacles", "suite_version", "generated_at_wall_unix_sec"}
+    }
+    summary.update({
+        "benchmark_result": benchmark_result,
+        "benchmark_result_reason": benchmark_reason,
+        "navigation_benchmark_result": navigation_result,
+        "navigation_benchmark_result_reason": navigation_reason,
+        "dynamic_stimulus_valid": stimulus_valid,
+        "dynamic_collision_ground_truth": collision,
+        "dynamic_invalid_reasons": invalid_reasons,
+        "dynamic_obstacle_count": len(obstacles),
+        "dynamic_obstacles": obstacles,
+        "dynamic_controller": dynamic_controller,
+    })
+
+    notes = summary.setdefault("notes", {})
+    if not isinstance(notes, dict):
+        notes = {}
+        summary["notes"] = notes
+    notes.update({
+        "collision_ground_truth_available": True,
+        "near_success_collision_checked": True,
+        "dynamic_stimulus_validity_source":
+            "observed Gazebo obstacle odometry vs frozen pre-stimulus "
+            "Nav2 /plan, plus temporal robot proximity",
+        "dynamic_collision_source":
+            "Gazebo Contact system + TouchPlugin target a200_0000",
+    })
+
+    summary_path = run_dir / "summary.yaml"
+    temporary = summary_path.with_name(summary_path.name + ".tmp")
+    try:
+        with temporary.open("w", encoding="utf-8") as handle:
+            yaml.safe_dump(
+                summary,
+                handle,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, summary_path)
+    except OSError as exc:
+        raise InfraError(
+            "DYNAMIC_RESULT",
+            f"Could not update {summary_path}: {exc}",
+        ) from exc
+    return summary
+
+
 def wait_logger_finish(
     logger_proc: subprocess.Popen,
     *,
     timeout_sec: float = 660.0,
     diagnostic_log: Path | None = None,
+    watched_processes: tuple[
+        tuple[str, subprocess.Popen, Path | None], ...
+    ] = (),
 ) -> None:
     deadline = time.monotonic() + timeout_sec
     while time.monotonic() < deadline:
@@ -1417,6 +1583,15 @@ def wait_logger_finish(
                     + log_tail(diagnostic_log),
                 )
             return
+        for name, process, process_log in watched_processes:
+            watched_rc = process.poll()
+            if watched_rc is not None:
+                raise InfraError(
+                    "DYNAMIC_CONTROLLER_RUNTIME",
+                    f"{name} exited before benchmark_logger "
+                    f"(rc={watched_rc}).\n"
+                    + log_tail(process_log),
+                )
         time.sleep(0.5)
 
     raise InfraError(
@@ -1428,7 +1603,14 @@ def wait_logger_finish(
 
 def validate_paths() -> None:
     missing = [
-        p for p in [RUN_CASE, LOGGER, SEND_GOAL]
+        p for p in [
+            RUN_CASE,
+            LOGGER,
+            SEND_GOAL,
+            DYNAMIC_DOMAIN,
+            DYNAMIC_CORE,
+            DYNAMIC_CONTROLLER,
+        ]
         if not p.exists()
     ]
     if missing:
@@ -1479,8 +1661,18 @@ def preflight() -> None:
     print("[INFO] A linked PC-local Zenoh router will be managed automatically.")
 
 
-def bridge_command():
-    return BRIDGE_ARGS
+def dynamic_specs_for_case(case_id: str):
+    case_spec = load_case_spec(case_id, CASES)
+    return parse_dynamic_obstacles(case_spec.raw)
+
+
+def case_has_dynamic_obstacles(case_id: str) -> bool:
+    return bool(dynamic_specs_for_case(case_id))
+
+
+def bridge_command(case_id: str):
+    case_spec = load_case_spec(case_id, CASES)
+    return [*BRIDGE_ARGS, *dynamic_bridge_arguments(case_spec.raw)]
 
 
 def logger_command(case_id: str):
@@ -1490,6 +1682,69 @@ def logger_command(case_id: str):
         "-p", "use_sim_time:=true",
         *TF_ARGS,
     ]
+
+
+def dynamic_controller_command(
+    case_id: str,
+    result_dir: Path,
+    map_start: Pose2D,
+):
+    return [
+        "python3", "-u", str(DYNAMIC_CONTROLLER), case_id,
+        "--result-dir", str(result_dir),
+        "--map-start-x", f"{map_start.x:.9f}",
+        "--map-start-y", f"{map_start.y:.9f}",
+        "--map-start-yaw", f"{map_start.yaw:.9f}",
+        "--ros-args",
+        "-p", "use_sim_time:=true",
+        *TF_ARGS,
+    ]
+
+
+def finish_dynamic_controller(
+    case_id: str,
+    process: subprocess.Popen,
+    diagnostic_log: Path,
+) -> None:
+    """Request a zero command and wait for the controller's acknowledgement."""
+    if process.poll() is not None:
+        raise InfraError(
+            "DYNAMIC_CONTROLLER_RUNTIME",
+            "dynamic_obstacle_controller exited before its stop handshake "
+            f"(rc={process.returncode}).\n" + log_tail(diagnostic_log),
+        )
+
+    result = run_pc(
+        [
+            "ros2", "service", "call",
+            "/benchmark/dynamic/stop",
+            "std_srvs/srv/Trigger",
+            "{}",
+        ],
+        timeout=10.0,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise InfraError(
+            "DYNAMIC_CONTROLLER_STOP",
+            "Could not call /benchmark/dynamic/stop.\n"
+            + (result.stdout or "")[-3000:]
+            + "\n"
+            + log_tail(diagnostic_log),
+        )
+
+    wait_log_marker(
+        process,
+        diagnostic_log,
+        f"DYNAMIC_CONTROLLER_STOPPED case={case_id}",
+        timeout=8.0,
+        stage="DYNAMIC_CONTROLLER_STOP",
+    )
+    stop_pc_process(
+        "dynamic_obstacle_controller",
+        process,
+        grace=5.0,
+    )
 
 
 def sender_command(case_id: str, map_start: Pose2D):

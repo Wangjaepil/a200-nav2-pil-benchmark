@@ -43,6 +43,7 @@ from benchmark_common import (
     quaternion_to_yaw as quat_to_yaw,
     suite_metadata,
 )
+from benchmark_dynamic import parse_dynamic_obstacles
 
 # rclpy on Jazzy does not export qos_profile_rosout_default (rclcpp has
 # RosoutQoS, rclpy does not).  Importing it fails at module load, so rebuild
@@ -155,6 +156,9 @@ class BenchmarkLogger(Node):
         self.case_id = case_spec.case_id
         self.scenario = case_spec.scenario
         self.case = case_spec.raw
+        self.has_dynamic_obstacles = bool(
+            parse_dynamic_obstacles(self.case)
+        )
         self.world_start_x = case_spec.robot.x
         self.world_start_y = case_spec.robot.y
         self.world_start_yaw = case_spec.robot.yaw
@@ -1253,13 +1257,22 @@ class BenchmarkLogger(Node):
             if self.travel_distance > 0.0 else None
         )
 
-        benchmark_result, benchmark_result_reason = (
+        navigation_benchmark_result, navigation_benchmark_result_reason = (
             self.classify_benchmark_result(
                 result,
                 final_xy_error,
                 final_yaw_error,
             )
         )
+        if self.has_dynamic_obstacles:
+            benchmark_result = "PENDING_DYNAMIC_VALIDATION"
+            benchmark_result_reason = (
+                "Waiting for dynamic obstacle motion and collision "
+                "ground-truth validation"
+            )
+        else:
+            benchmark_result = navigation_benchmark_result
+            benchmark_result_reason = navigation_benchmark_result_reason
 
         return {
             **suite_metadata(),
@@ -1271,6 +1284,9 @@ class BenchmarkLogger(Node):
             "nav2_result": result,
             "benchmark_result": benchmark_result,
             "benchmark_result_reason": benchmark_result_reason,
+            "navigation_benchmark_result": navigation_benchmark_result,
+            "navigation_benchmark_result_reason":
+                navigation_benchmark_result_reason,
 
             "duration_sim_sec": (
                 round(duration_sim, 3)

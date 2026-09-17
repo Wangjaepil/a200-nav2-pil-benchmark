@@ -1,13 +1,13 @@
 scenario: S5
 case_id: S5_18
-description: far-start long traversal
+description: head-on actor plus lateral crosser
 robot:
-  x: -11.156363
-  y: 8.085533
+  x: -12.182423
+  y: 5.266455
   yaw: 1.22173
 goal:
-  x: 1.156363
-  y: 41.914467
+  x: 2.182423
+  y: 44.733545
   yaw: 1.22173
 obstacles: []
 dynamic_obstacles:
@@ -15,26 +15,58 @@ dynamic_obstacles:
   shape: cylinder
   mass: 40.0
   pose:
-    x: -1.24123
-    y: 23.631919
-    yaw: 2.792527
+    x: -4.938162
+    y: 31.894648
+    yaw: -0.926968
   motion:
-    end:
-      x: -8.75877
-      y: 26.368081
-      yaw: 2.792527
     speed_mps: 0.8
     trigger:
       type: robot_distance
-      distance_m: 3.75
+      distance_m: 6.5
+    waypoints:
+    - x: -3.289899
+      y: 29.698463
+      yaw: -0.926968
+      speed_mps: 0.85
+    - x: -4.82899
+      y: 25.469846
+      yaw: 4.363323
+      speed_mps: 0.75
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 6.4
+    min_travel_m: 4.348
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
-  radius: 0.35
+  radius: 0.3
+  height: 1.4
+- name: s5_18_dyn_02
+  shape: cylinder
+  mass: 40.0
+  pose:
+    x: -1.154862
+    y: 26.793017
+    yaw: 2.792527
+  motion:
+    speed_mps: 0.7
+    trigger:
+      type: robot_distance
+      distance_m: 4.0
+    end:
+      x: -6.793017
+      y: 28.845138
+      yaw: 2.792527
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.6
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.24
   height: 1.4

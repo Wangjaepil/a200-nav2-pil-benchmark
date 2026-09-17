@@ -1,96 +1,110 @@
 scenario: S5
 case_id: S5_20
-description: three staged crossings
+description: mixed three-actor dynamic scene
 robot:
-  x: -5.266455
-  y: -2.182423
+  x: -3.38707
+  y: -2.866463
   yaw: 2.792527
 goal:
-  x: -44.733545
-  y: 12.182423
+  x: -46.61293
+  y: 12.866463
   yaw: 2.792527
 obstacles: []
 dynamic_obstacles:
 - name: s5_20_dyn_01
   shape: cylinder
-  mass: 40.0
+  mass: 25.0
   pose:
-    x: -16.627409
-    y: 4.61307
-    yaw: -1.919862
+    x: -17.567101
+    y: 4.955091
+    yaw: 4.004552
   motion:
-    end:
-      x: -18.337509
-      y: -0.085393
-      yaw: -1.919862
-    speed_mps: 0.6
-    trigger:
-      type: robot_distance
-      distance_m: 3.125
-  required: true
-  validation:
-    path_intersection_tolerance_m: 0.3
-    max_robot_interaction_distance_m: 3.5
-    min_travel_m: 4.0
-    min_motion_before_collision_valid_m: 0.5
-    end_tolerance_m: 0.15
-    initial_pose_tolerance_m: 0.35
-    allow_interaction_after_motion: false
-  radius: 0.35
-  height: 1.4
-- name: s5_20_dyn_02
-  shape: cylinder
-  mass: 40.0
-  pose:
-    x: -25.923454
-    y: 2.46283
-    yaw: 1.221731
-  motion:
-    end:
-      x: -24.076546
-      y: 7.53717
-      yaw: 1.221731
-    speed_mps: 0.45
-    trigger:
-      type: robot_distance
-      distance_m: 4.5
-  required: true
-  validation:
-    path_intersection_tolerance_m: 0.3
-    max_robot_interaction_distance_m: 3.5
-    min_travel_m: 4.32
-    min_motion_before_collision_valid_m: 0.5
-    end_tolerance_m: 0.15
-    initial_pose_tolerance_m: 0.35
-    allow_interaction_after_motion: false
-  radius: 0.35
-  height: 1.4
-- name: s5_20_dyn_03
-  shape: box
-  mass: 55.0
-  pose:
-    x: -31.491481
-    y: 10.555239
-    yaw: -1.919862
-  motion:
-    end:
-      x: -33.543601
-      y: 4.917083
-      yaw: -1.919862
     speed_mps: 0.75
     trigger:
       type: robot_distance
-      distance_m: 3.0
+      distance_m: 5.5
+    waypoints:
+    - x: -20.344721
+      y: 1.70935
+      yaw: 4.004552
+      speed_mps: 0.85
+    - x: -21.300652
+      y: 4.930561
+      yaw: 1.859279
+      speed_mps: 0.95
+    - x: -24.274501
+      y: 2.607585
+      yaw: 3.804724
+      speed_mps: 0.85
   required: true
   validation:
     path_intersection_tolerance_m: 0.3
     max_robot_interaction_distance_m: 3.5
-    min_travel_m: 4.8
+    min_travel_m: 6.843
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.25
+  height: 1.4
+- name: s5_20_dyn_02
+  shape: box
+  mass: 80.0
+  pose:
+    x: -24.213354
+    y: 7.161293
+    yaw: 3.953196
+  motion:
+    speed_mps: 0.65
+    trigger:
+      type: robot_distance
+      distance_m: 6.0
+    waypoints:
+    - x: -25.939693
+      y: 5.34202
+      yaw: 3.953196
+      speed_mps: 0.7
+    - x: -29.698463
+      y: 6.710101
+      yaw: 2.792527
+      speed_mps: 0.55
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.905
     min_motion_before_collision_valid_m: 0.5
     end_tolerance_m: 0.15
     initial_pose_tolerance_m: 0.35
     allow_interaction_after_motion: false
   size:
+  - 1.0
   - 0.7
-  - 0.55
   - 0.9
+- name: s5_20_dyn_03
+  shape: cylinder
+  mass: 45.0
+  pose:
+    x: -33.612005
+    y: 4.729145
+    yaw: 1.22173
+  motion:
+    speed_mps: 0.95
+    trigger:
+      type: robot_distance
+      distance_m: 3.0
+    end:
+      x: -31.423077
+      y: 10.743178
+      yaw: 1.22173
+  required: true
+  validation:
+    path_intersection_tolerance_m: 0.3
+    max_robot_interaction_distance_m: 3.5
+    min_travel_m: 3.84
+    min_motion_before_collision_valid_m: 0.5
+    end_tolerance_m: 0.15
+    initial_pose_tolerance_m: 0.35
+    allow_interaction_after_motion: false
+  radius: 0.35
+  height: 1.4

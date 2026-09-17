@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""ROS-independent schema and geometry helpers for S5 dynamic obstacles."""
+"""ROS-independent schema and geometry helpers for S5 dynamic obstacles.
+
+Schema v2 keeps the original single-segment ``motion.end`` form fully
+backward-compatible and additionally supports deterministic multi-waypoint
+motion through ``motion.waypoints``.  Each waypoint may override speed and may
+request a stationary hold before the next leg.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +17,7 @@ from typing import Mapping, Sequence
 from benchmark_common import Pose2D, require_finite
 
 
-DYNAMIC_SCHEMA_VERSION = 1
+DYNAMIC_SCHEMA_VERSION = 2
 DYNAMIC_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 
@@ -23,11 +29,18 @@ class DynamicTrigger:
 
 
 @dataclass(frozen=True)
+class DynamicWaypoint:
+    pose: Pose2D
+    speed_mps: float
+    hold_sec: float = 0.0
+
+
+@dataclass(frozen=True)
 class DynamicObstacleSpec:
     name: str
     shape: str
     pose: Pose2D
-    end: Pose2D
+    waypoints: tuple[DynamicWaypoint, ...]
     speed_mps: float
     mass_kg: float
     trigger: DynamicTrigger
@@ -41,8 +54,39 @@ class DynamicObstacleSpec:
     raw: dict
 
     @property
+    def end(self) -> Pose2D:
+        """Final configured waypoint (compatibility with schema v1 callers)."""
+        return self.waypoints[-1].pose
+
+    @property
+    def motion_points(self) -> tuple[Pose2D, ...]:
+        return (self.pose,) + tuple(item.pose for item in self.waypoints)
+
+    @property
+    def path_length_m(self) -> float:
+        points = self.motion_points
+        return sum(
+            math.hypot(b.x - a.x, b.y - a.y)
+            for a, b in zip(points, points[1:])
+        )
+
+    @property
     def segment_length_m(self) -> float:
-        return math.hypot(self.end.x - self.pose.x, self.end.y - self.pose.y)
+        """Compatibility alias.  In v2 this is the full polyline length."""
+        return self.path_length_m
+
+    @property
+    def estimated_motion_duration_sec(self) -> float:
+        previous = self.pose
+        total = 0.0
+        for waypoint in self.waypoints:
+            total += math.hypot(
+                waypoint.pose.x - previous.x,
+                waypoint.pose.y - previous.y,
+            ) / waypoint.speed_mps
+            total += waypoint.hold_sec
+            previous = waypoint.pose
+        return total
 
     @property
     def topic_prefix(self) -> str:
@@ -113,6 +157,63 @@ def _shape_fields(index: int, raw: Mapping) -> str:
     )
 
 
+def _parse_waypoints(label: str, start: Pose2D, motion: Mapping) -> tuple[DynamicWaypoint, ...]:
+    default_speed = _positive_float(
+        f"{label}.motion.speed_mps", motion.get("speed_mps", 0.5)
+    )
+    raw_waypoints = motion.get("waypoints")
+
+    if raw_waypoints is None:
+        end = _pose(f"{label}.motion.end", motion.get("end") or {})
+        hold_sec = _positive_float(
+            f"{label}.motion.hold_sec",
+            motion.get("hold_sec", 0.0),
+            allow_zero=True,
+        )
+        waypoints = (DynamicWaypoint(end, default_speed, hold_sec),)
+    else:
+        if not isinstance(raw_waypoints, list) or not raw_waypoints:
+            raise ValueError(f"{label}.motion.waypoints must be a non-empty list")
+        parsed = []
+        previous_yaw = start.yaw
+        for wp_index, raw_wp in enumerate(raw_waypoints):
+            wp_label = f"{label}.motion.waypoints[{wp_index}]"
+            if not isinstance(raw_wp, Mapping):
+                raise ValueError(f"{wp_label} must be a mapping")
+            pose = _pose(wp_label, raw_wp, default_yaw=previous_yaw)
+            speed = _positive_float(
+                f"{wp_label}.speed_mps", raw_wp.get("speed_mps", default_speed)
+            )
+            hold_sec = _positive_float(
+                f"{wp_label}.hold_sec",
+                raw_wp.get("hold_sec", 0.0),
+                allow_zero=True,
+            )
+            parsed.append(DynamicWaypoint(pose, speed, hold_sec))
+            previous_yaw = pose.yaw
+        waypoints = tuple(parsed)
+
+    previous = start
+    total = 0.0
+    for wp_index, waypoint in enumerate(waypoints):
+        length = math.hypot(
+            waypoint.pose.x - previous.x,
+            waypoint.pose.y - previous.y,
+        )
+        if length < 0.10:
+            raise ValueError(
+                f"{label}.motion leg {wp_index} is too short ({length:.3f} m); "
+                "use hold_sec on the previous waypoint for stationary waits"
+            )
+        total += length
+        previous = waypoint.pose
+    if total < 0.50:
+        raise ValueError(
+            f"{label} motion path is too short ({total:.3f} m); use at least 0.50 m"
+        )
+    return waypoints
+
+
 def parse_dynamic_obstacles(case: Mapping) -> list[DynamicObstacleSpec]:
     """Validate and normalize a case's ``dynamic_obstacles`` list."""
     raw_items = case.get("dynamic_obstacles", [])
@@ -143,15 +244,8 @@ def parse_dynamic_obstacles(case: Mapping) -> list[DynamicObstacleSpec]:
         motion = raw.get("motion")
         if not isinstance(motion, Mapping):
             raise ValueError(f"{label}.motion must be a mapping")
-        end = _pose(f"{label}.motion.end", motion.get("end") or {})
-        length = math.hypot(end.x - start.x, end.y - start.y)
-        if length < 0.50:
-            raise ValueError(
-                f"{label} motion segment is too short ({length:.3f} m); "
-                "use at least 0.50 m"
-            )
+        waypoints = _parse_waypoints(label, start, motion)
 
-        speed = _positive_float(f"{label}.motion.speed_mps", motion.get("speed_mps"))
         trigger_raw = motion.get("trigger") or {}
         if not isinstance(trigger_raw, Mapping):
             raise ValueError(f"{label}.motion.trigger must be a mapping")
@@ -182,13 +276,17 @@ def parse_dynamic_obstacles(case: Mapping) -> list[DynamicObstacleSpec]:
         if not isinstance(validation, Mapping):
             raise ValueError(f"{label}.validation must be a mapping")
 
-        min_travel_default = max(0.50, 0.80 * length)
+        path_length = sum(
+            math.hypot(b.pose.x - a.x, b.pose.y - a.y)
+            for a, b in zip((start,) + tuple(w.pose for w in waypoints[:-1]), waypoints)
+        )
+        min_travel_default = max(0.50, 0.70 * path_length)
         parsed.append(DynamicObstacleSpec(
             name=name,
             shape=shape,
             pose=start,
-            end=end,
-            speed_mps=speed,
+            waypoints=waypoints,
+            speed_mps=waypoints[0].speed_mps,
             mass_kg=_positive_float(f"{label}.mass", raw.get("mass", 40.0)),
             trigger=trigger,
             required=bool(raw.get("required", True)),

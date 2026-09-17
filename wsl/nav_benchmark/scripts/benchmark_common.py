@@ -18,8 +18,8 @@ from typing import Mapping
 import yaml
 
 
-SUITE_VERSION = "2.0.0"
-RESULT_SCHEMA_VERSION = 3
+SUITE_VERSION = "2.1.0"
+RESULT_SCHEMA_VERSION = 4
 PLAN_SCHEMA_VERSION = 1
 
 CASE_ID_RE = re.compile(r"^S(?P<scenario>\d+)_(?P<case>\d+)$", re.IGNORECASE)
