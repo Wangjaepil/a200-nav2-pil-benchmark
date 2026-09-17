@@ -13,7 +13,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(behaviortree_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav2_behavior_tree REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(prox_mpc_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -77,6 +80,24 @@ rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} rosidl_typesupport_cpp)
 target_link_libraries(predictive_collision_monitor "${cpp_typesupport_target}")
 
+# One-shot BT trigger: when the predictive crossing supervisor reports that
+# a moving obstacle has passed, wait for a newer global costmap and request
+# exactly one fresh ComputePathToPose execution.
+add_library(predictive_replan_bt_node SHARED
+  src/predictive_replan_bt_node.cpp
+)
+target_compile_definitions(
+  predictive_replan_bt_node
+  PRIVATE BT_PLUGIN_EXPORT
+)
+ament_target_dependencies(predictive_replan_bt_node
+  behaviortree_cpp
+  nav2_behavior_tree
+  nav_msgs
+  rclcpp
+)
+target_link_libraries(predictive_replan_bt_node "${cpp_typesupport_target}")
+
 install(
   DIRECTORY include/
   DESTINATION include
@@ -86,6 +107,7 @@ install(
     crossing_yield_core
     predictive_collision_core
     predictive_collision_monitor
+    predictive_replan_bt_node
     velocity_filter_core
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

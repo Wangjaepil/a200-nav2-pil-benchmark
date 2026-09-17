@@ -36,7 +36,7 @@ a200_predictive_collision_monitor:
     # ----------------------------------------------------------
     # A laterally crossing obstacle is given priority. Once latched, a
     # temporary TTC PASS caused by DWB steering cannot release the robot.
-    crossing_yield_enabled: true
+    crossing_yield_enabled: false
 
     # The ordinary TTC evaluator first applies proportional slowdown from
     # 2.5 s. A lateral crossing is latched as a full yield at 2.0 s, leaving

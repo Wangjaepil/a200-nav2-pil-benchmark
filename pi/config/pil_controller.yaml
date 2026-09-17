@@ -125,6 +125,7 @@ controller_server:
         - RotateToGoal
         - Oscillation
         - ObstacleFootprint
+        - DynamicObstacle
         - GoalAlign
         - PathAlign
         - PathDist
@@ -133,10 +134,10 @@ controller_server:
       ObstacleFootprint.scale: 0.02
 
       PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
+      PathAlign.forward_point_distance: 0.3
 
       GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
+      GoalAlign.forward_point_distance: 0.3
 
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
@@ -144,6 +145,59 @@ controller_server:
       RotateToGoal.scale: 32.0
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
+
+      DynamicObstacle.class: "a200_dynamic_dwb_critic::DynamicObstacleCritic"
+      DynamicObstacle.scale: 6.0
+
+      DynamicObstacle.tracked_obstacles_topic: /tracked_obstacles
+      DynamicObstacle.track_timeout_sec: 0.75
+      DynamicObstacle.future_stamp_tolerance_sec: 0.10
+      DynamicObstacle.minimum_dynamic_speed_mps: 0.15
+
+      DynamicObstacle.robot_half_length_m: 0.494
+      DynamicObstacle.robot_half_width_m: 0.335
+      DynamicObstacle.minimum_obstacle_radius_m: 0.10
+
+      DynamicObstacle.hard_safety_margin_m: 0.10
+      DynamicObstacle.soft_clearance_m: 1.20
+
+      DynamicObstacle.uncertainty_sigma_multiplier: 1.0
+      DynamicObstacle.maximum_uncertainty_margin_m: 0.35
+
+      # DWB FollowPath.sim_time과 동일
+      DynamicObstacle.trajectory_horizon_sec: 1.70
+
+      # ==========================================================
+      # v0.1 - 기존 검증된 scoring
+      # ==========================================================
+      DynamicObstacle.ttc_horizon_sec: 4.0
+      DynamicObstacle.proximity_weight: 1.0
+      DynamicObstacle.ttc_weight: 1.5
+      DynamicObstacle.overlap_penalty: 25.0
+      DynamicObstacle.future_discount_per_sec: 0.15
+
+      # ==========================================================
+      # v0.2-A - long-horizon dynamic reasoning
+      # ==========================================================
+
+      # Tracker future prediction
+      DynamicObstacle.prediction_horizon_sec: 3.0
+      DynamicObstacle.prediction_sample_dt_sec: 0.10
+
+      # Finite-horizon VO-like risk
+      DynamicObstacle.vo_weight: 1.0
+      DynamicObstacle.vo_time_decay_sec: 1.5
+
+      # Closest Point of Approach
+      DynamicObstacle.cpa_weight: 1.0
+      DynamicObstacle.cpa_soft_clearance_m: 1.20
+      DynamicObstacle.cpa_future_discount_per_sec: 0.15
+
+      # Braking feasibility / reserve
+      DynamicObstacle.braking_weight: 1.0
+      DynamicObstacle.braking_reaction_sec: 0.20
+      DynamicObstacle.braking_decel_mps2: 1.0
+      DynamicObstacle.braking_time_reserve_sec: 0.30
 
 
 # ==============================================================
@@ -183,18 +237,34 @@ local_costmap:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
 
-        observation_sources: scan
+        # 같은 /scan을 역할별로 분리
+        # scan_mark  : 실제 LiDAR return만 장애물로 marking
+        # scan_clear : +inf도 유효한 clearing ray로 사용
+        observation_sources: "scan_mark scan_clear"
 
-        scan:
+        scan_mark:
           topic: /scan
           data_type: "LaserScan"
 
           marking: true
-          clearing: true
+          clearing: false
+          inf_is_valid: false
 
-          # Treat Gazebo's +inf no-hit beams as max-range clearing rays. This
-          # removes vacated dynamic-obstacle cells instead of retaining them in
-          # the local costmap as a ghost trail.
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+
+          obstacle_min_range: 0.12
+          obstacle_max_range: 3.0
+
+          raytrace_min_range: 0.12
+          raytrace_max_range: 3.5
+
+        scan_clear:
+          topic: /scan
+          data_type: "LaserScan"
+
+          marking: false
+          clearing: true
           inf_is_valid: true
 
           min_obstacle_height: 0.0

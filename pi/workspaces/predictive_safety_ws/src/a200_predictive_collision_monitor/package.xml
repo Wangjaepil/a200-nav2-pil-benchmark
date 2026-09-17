@@ -2,19 +2,21 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>a200_predictive_collision_monitor</name>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
   <description>
     Predictive collision assessment and optional velocity enforcement for an
     A200 differential-drive robot using tracked 2D lidar obstacles.
   </description>
-
   <maintainer email="maintainer@example.com">A200 Navigation Project</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
+  <depend>behaviortree_cpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav2_behavior_tree</depend>
+  <depend>nav_msgs</depend>
   <depend>prox_mpc_msgs</depend>
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>

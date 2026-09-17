@@ -1,0 +1,9 @@
+<library path="a200_dynamic_dwb_critic">
+  <class
+    type="a200_dynamic_dwb_critic::DynamicObstacleCritic"
+    base_class_type="dwb_core::TrajectoryCritic">
+    <description>
+      Scores DWB candidate trajectories against time-indexed tracked-obstacle predictions.
+    </description>
+  </class>
+</library>

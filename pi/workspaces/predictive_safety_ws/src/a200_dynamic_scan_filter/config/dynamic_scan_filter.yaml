@@ -1,0 +1,71 @@
+a200_dynamic_scan_filter:
+  ros__parameters:
+    use_sim_time: true
+
+    input_scan_topic: /scan
+    output_scan_topic: /scan_static_mark
+    tracked_obstacles_topic: /tracked_obstacles
+
+    # Fail-safe policy:
+    # if tracks are absent/stale/future-dated or TF is unavailable,
+    # publish the original scan unchanged (do NOT suppress obstacles).
+    track_timeout_sec: 0.40
+    future_stamp_tolerance_sec: 0.10
+    transform_timeout_sec: 0.10
+    state_retention_sec: 1.00
+
+    # Conservative motion hysteresis.
+    # A track is suppressed from GLOBAL marking only after it both:
+    #   1) stays above enter speed for the hold time, and
+    #   2) actually moves by the minimum displacement in odom.
+    dynamic_enter_speed_mps: 0.20
+    dynamic_exit_speed_mps: 0.10
+    dynamic_enter_hold_sec: 0.20
+    dynamic_exit_hold_sec: 0.60
+    dynamic_enter_min_displacement_m: 0.03
+
+    # ==========================================================
+    # v0.3 rolling observed-motion estimator
+    #
+    # Do not decide "stopped" from one anchor point. Keep ~1.5 s of
+    # track history, average it into time bins, and derive:
+    #   - trend speed    : first-bin centroid -> last-bin centroid
+    #   - activity speed : 75th-percentile speed between adjacent bin centroids
+    #
+    # Stationary requires BOTH to be low. A reversing / oscillating object
+    # can have near-zero net trend but still high activity, so it remains
+    # dynamic.
+    # ==========================================================
+    motion_history_window_sec: 1.50
+    motion_history_min_span_sec: 1.00
+    motion_history_min_samples: 10
+    motion_bin_count: 5
+
+    # v0.4 fast moving -> stopped recognition.
+    # Only used to RELEASE dynamic masking. Dynamic re-entry still requires
+    # the longer v0.3 observed-motion evidence, preventing chatter.
+    quick_motion_window_sec: 0.80
+    quick_motion_min_span_sec: 0.65
+    quick_motion_min_samples: 7
+    quick_stationary_vote_window: 3
+    quick_stationary_votes_required: 2
+    quick_stationary_trend_speed_mps: 0.08
+    quick_stationary_activity_speed_mps: 0.11
+
+    # STATIC evidence thresholds.
+    stationary_trend_speed_mps: 0.08
+    stationary_activity_speed_mps: 0.15
+    stationary_confirm_sec: 0.25
+
+    # DYNAMIC evidence thresholds (higher than STATIC = hysteresis).
+    dynamic_trend_speed_mps: 0.14
+    dynamic_activity_speed_mps: 0.16
+
+    # Current scan-return mask around each confirmed moving track.
+    # Tracker radius remains the base size; these values only add bounded
+    # matching tolerance for scan/tracker timing and position uncertainty.
+    minimum_mask_radius_m: 0.15
+    mask_padding_m: 0.05
+    uncertainty_sigma_multiplier: 0.50
+    maximum_uncertainty_padding_m: 0.10
+    maximum_mask_radius_m: 0.80

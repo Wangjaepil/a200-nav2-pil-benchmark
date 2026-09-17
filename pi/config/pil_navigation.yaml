@@ -21,7 +21,6 @@ global_costmap:
   global_costmap:
     ros__parameters:
       use_sim_time: true
-
       global_frame: map
       robot_base_frame: base_link
 
@@ -32,7 +31,6 @@ global_costmap:
 
       update_frequency: 2.0
       publish_frequency: 1.0
-
       # [FIX] robot_radius: 0.60 -> 실제 footprint
       #
       # 로봇 실측은 0.988 x 0.67 m 이고 0.60은 그 외접원 반지름이다.
@@ -64,7 +62,6 @@ global_costmap:
       # 주의: 이 변경은 측정 기준을 바꾼다. 과거 결과와 직접 비교 불가.
       footprint: "[[0.494, 0.335], [0.494, -0.335], [-0.494, -0.335], [-0.494, 0.335]]"
       footprint_padding: 0.12
-
       # 지금은 사전 지도가 없으므로
       # 아직 보지 못한 공간을 막힌 공간으로 취급하지 않음
       track_unknown_space: false
@@ -76,18 +73,32 @@ global_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        observation_sources: scan
 
-        scan:
-          topic: /scan
+        observation_sources: "scan_mark scan_clear"
+
+        scan_mark:
+          topic: /scan_static_mark
           data_type: "LaserScan"
 
           marking: true
-          clearing: true
+          clearing: false
+          inf_is_valid: false
 
-          # Gazebo publishes a no-hit LaserScan beam as +inf. Nav2's default
-          # (false) drops that beam, so cells marked by a moving obstacle are
-          # never ray-trace-cleared and accumulate into a ghost trail.
+          min_obstacle_height: 0.0
+          max_obstacle_height: 2.0
+
+          obstacle_min_range: 0.12
+          obstacle_max_range: 12.0
+
+          raytrace_min_range: 0.12
+          raytrace_max_range: 13.0
+
+        scan_clear:
+          topic: /scan
+          data_type: "LaserScan"
+
+          marking: false
+          clearing: true
           inf_is_valid: true
 
           min_obstacle_height: 0.0
@@ -97,10 +108,6 @@ global_costmap:
           obstacle_max_range: 12.0
 
           raytrace_min_range: 0.12
-          # [FIX] raytrace_max_range 가 obstacle_max_range 와 같으면
-          # 최대 거리에서 찍힌 장애물을 지우는 ray가 딱 그 지점에서 끝나
-          # 유령 장애물이 남을 수 있다. local costmap은 3.0/3.5로
-          # 이미 벌려 두었으므로 global도 동일하게 맞춘다.
           raytrace_max_range: 13.0
 
       inflation_layer:
@@ -130,14 +137,14 @@ bt_navigator:
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
 
-    # 참고: 이 XML이 adaptive_escape의 발동 조건을 결정하는데
-    # benchmark_runner_support.snapshot_configs()의 remote_files에는
-    # 빠져 있어 런별 스냅샷에 남지 않는다. 재현성을 위해 추가 권장:
-    #   remote_files = [..., "pil_nav_to_pose.xml"]
+    # Custom BT libraries loaded by bt_navigator.
+    # PredictiveReplan listens to the existing predictive safety state and
+    # generates a one-shot replanning condition after a crossing target passes.
     default_nav_to_pose_bt_xml: "/home/tb-pil/pil_nav_to_pose.xml"
 
     plugin_lib_names:
       - adaptive_escape_bt_node
+      - predictive_replan_bt_node
 
     error_code_names:
       - compute_path_error_code
@@ -187,5 +194,4 @@ behavior_server:
     max_rotational_vel: 0.8
     min_rotational_vel: 0.2
     rotational_acc_lim: 1.5
-
     enable_stamped_cmd_vel: true

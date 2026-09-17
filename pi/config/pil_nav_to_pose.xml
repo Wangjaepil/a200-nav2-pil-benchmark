@@ -12,8 +12,10 @@
         <!--
           5 Hz로 Planner를 돌리는 것이 아니라
           기존 Global Path를 계속 사용할 수 있는지 검사한다.
-          단, 유효한 경로라도 1초가 지나면 다시 계산해서
-          이미 통과한 동적 장애물 때문에 만들어진 우회 경로를 버린다.
+
+          정상 상태에서는 유효한 경로를 최대 5초까지 유지한다.
+          단, Predictive Safety가 횡단 동적 장애물의 통과 완료를 판단하면
+          그 이벤트보다 최신 Global Costmap이 도착한 직후 1회 재계획한다.
         -->
         <RateController hz="5.0">
 
@@ -28,9 +30,24 @@
               <!-- 기존 Global Path 유지 조건 -->
               <ReactiveSequence name="KeepCurrentPath">
 
-                <!-- 1초가 지난 경로는 유효해도 한 번 다시 계산 -->
+                <!--
+                  평상시에는 5초 주기 재계획.
+                  동적 장애물이 완전히 통과한 경우에는 PredictiveReplan이
+                  최신 Global Costmap을 확인한 뒤 즉시 1회 재계획을 요청한다.
+
+                  PredictiveReplan은 새 Path가 blackboard에 반영될 때까지
+                  SUCCESS를 유지해 ReactiveFallback이 실행 중인
+                  ComputePathToPose를 다음 BT tick에서 취소하지 않게 한다.
+                -->
                 <Inverter>
-                  <PathExpiringTimer seconds="1.0" path="{path}"/>
+                  <Fallback name="PeriodicOrPassedObstacleReplan">
+                    <PredictiveReplan
+                      path="{path}"
+                      state_topic="/predictive_collision_state"
+                      costmap_topic="/global_costmap/costmap"
+                      event_timeout_sec="2.0"/>
+                    <PathExpiringTimer seconds="5.0" path="{path}"/>
+                  </Fallback>
                 </Inverter>
 
                 <!-- 새로운 goal / sub-goal이 아니어야 함 -->
@@ -45,9 +62,11 @@
 
 
               <!--
-                새 Goal이 들어왔거나,
-                기존 Path가 invalid이거나,
-                유효한 Path도 1초가 지났을 때 A* 재계획
+                아래 조건 중 하나면 A* 재계획:
+                  1) 새로운 Goal / sub-goal
+                  2) 기존 Path invalid
+                  3) 유효한 Path도 5초 경과
+                  4) 동적 장애물 통과 완료 + 최신 Global Costmap 확인
 
                 실패 원인은
                 {compute_path_error_code}에 저장
