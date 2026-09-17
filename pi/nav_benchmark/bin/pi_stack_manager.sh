@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # ============================================================
-# Pi Nav Benchmark Stack Manager v1.7
+# Pi Nav Benchmark Stack Manager v1.8
 # - Keeps hil_router OUTSIDE this manager.
 # - Manages localization, Nav2 lifecycle servers, Adaptive Escape,
 #   predictive dynamic-obstacle safety, Collision Monitor, and Far Goal Manager.
@@ -12,6 +12,12 @@ set -Eeuo pipefail
 # Command surface is unchanged from v1.5 (the PC runner depends on it):
 #   start_localization | start_nav2 | configure | activate
 #   start_far_goal | status | verify | stop
+#
+# v1.8 global dynamic-mark filtering:
+#   * a200_dynamic_scan_filter publishes /scan_static_mark.
+#   * Only confirmed moving-object returns are suppressed from GLOBAL costmap
+#     MARKING. Raw /scan remains unchanged for global CLEARING, local costmap,
+#     obstacle tracking, predictive safety, and Collision Monitor.
 #
 # v1.7 predictive-safety integration:
 #   * prox_mpc_obstacle_tracker estimates dynamic-obstacle motion from /scan.
@@ -141,6 +147,7 @@ LOCALIZATION_PROCESSES=(
 
 PREDICTIVE_SAFETY_PROCESSES=(
   obstacle_tracker
+  dynamic_scan_filter
   predictive_safety
 )
 
@@ -149,6 +156,7 @@ MANAGED_PROCESSES=(
   global_ekf
   navsat_transform
   obstacle_tracker
+  dynamic_scan_filter
   predictive_safety
   controller_server
   planner_server
@@ -166,6 +174,7 @@ declare -A PROCESS_MATCH=(
   [global_ekf]='[/]robot_localization/ekf_node'
   [navsat_transform]='[/]robot_localization/navsat_transform_node'
   [obstacle_tracker]='[/]prox_mpc_obstacle_tracker/obstacle_tracker'
+  [dynamic_scan_filter]='[/]a200_dynamic_scan_filter/dynamic_scan_filter'
   [predictive_safety]='[/]a200_predictive_collision_monitor/predictive_collision_monitor'
   [controller_server]='[/]nav2_controller/controller_server'
   [planner_server]='[/]nav2_planner/planner_server'
@@ -181,6 +190,7 @@ STOP_ORDER=(
   bt_navigator
   collision_monitor
   predictive_safety
+  dynamic_scan_filter
   obstacle_tracker
   behavior_server
   planner_server
@@ -676,6 +686,18 @@ start_nav2() {
        ${TF_REMAPS} \
        ${SIM_TIME_ARG}"
 
+  # Global-costmap marking filter:
+  # confirmed moving-object returns are removed from /scan_static_mark only.
+  # Raw /scan remains untouched for tracker, global clearing, local costmap,
+  # predictive safety, and Collision Monitor.
+  start_process "dynamic_scan_filter" \
+    "source ${HOME}/predictive_safety_ws/install/setup.bash && \
+     exec ros2 run a200_dynamic_scan_filter dynamic_scan_filter \
+       --ros-args \
+       --params-file ${HOME}/predictive_safety_ws/install/a200_dynamic_scan_filter/share/a200_dynamic_scan_filter/config/dynamic_scan_filter.yaml \
+       ${TF_REMAPS} \
+       ${SIM_TIME_ARG}"
+
   # Enforced predictive velocity filter. It fails closed when tracking data
   # is absent or stale, and publishes only to the existing Collision Monitor.
   start_process "predictive_safety" \
@@ -687,7 +709,8 @@ start_nav2() {
        ${SIM_TIME_ARG}"
 
   start_process "controller_server" \
-    "exec ros2 run nav2_controller controller_server \
+    "source ${HOME}/predictive_safety_ws/install/setup.bash && \
+    exec ros2 run nav2_controller controller_server \
        --ros-args \
        --params-file ${HOME}/pil_controller.yaml \
        ${TF_REMAPS} \
@@ -719,7 +742,8 @@ start_nav2() {
 
   start_process "bt_navigator" \
     "source ${HOME}/adaptive_escape_ws/install/setup.bash && \
-     exec ros2 run nav2_bt_navigator bt_navigator \
+    source ${HOME}/predictive_safety_ws/install/local_setup.bash && \
+    exec ros2 run nav2_bt_navigator bt_navigator \
        --ros-args \
        --params-file ${HOME}/pil_navigation.yaml \
        ${TF_REMAPS} \
